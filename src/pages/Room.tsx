@@ -212,25 +212,25 @@ export function Room({ id, board }: { id: string; board: boolean }) {
 
   if (game.status === "finished" || (board && game.status !== "lobby")) {
     return (
-      <div className="wrap">
-        <div className="playtop">
-          <div>
-            <h1>{game.status === "finished" ? "Round over" : "Scorecard"}</h1>
-            <p className="sub">
-              {COURSE[game.nine].label} · {TEE_LABEL[game.tee]} · {game.name}
-            </p>
+      <div className="wrap hasbar">
+        <div className="holehead">
+          <div className="num">{game.status === "finished" ? "Round over" : "Scorecard"}</div>
+          <div className="meta">
+            {COURSE[game.nine].label} · {TEE_LABEL[game.tee]} · {game.name}
           </div>
+        </div>
+        <Board game={game} locked={game.status === "finished"} />
+        <div className="thumbbar">
           {game.status !== "finished" ? (
-            <button className="btn ghost small" type="button" onClick={() => go(`/g/${id}`)}>
+            <button className="btn" type="button" onClick={() => go(`/g/${id}`)}>
               Play
             </button>
           ) : (
-            <button className="btn ghost small" type="button" onClick={() => go("/")}>
+            <button className="btn" type="button" onClick={() => go("/")}>
               Home
             </button>
           )}
         </div>
-        <Board game={game} locked={game.status === "finished"} />
       </div>
     );
   }
@@ -269,17 +269,12 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   const mine = game.scores[playerId] ?? [];
 
   return (
-    <div className="wrap play">
-      <div className="playtop">
-        <div className="holehead">
-          <div className="num">Hole {def.hole}</div>
-          <div className="meta">
-            Par {def.par} · {def.yards[game.tee]} yds
-          </div>
+    <div className="wrap play hasbar">
+      <div className="holehead">
+        <div className="num">Hole {def.hole}</div>
+        <div className="meta">
+          Par {def.par} · {def.yards[game.tee]} yds
         </div>
-        <button className="btn ghost small" type="button" onClick={() => go(`/g/${id}/board`)}>
-          Board
-        </button>
       </div>
 
       <div className="chips">
@@ -322,11 +317,16 @@ export function Room({ id, board }: { id: string; board: boolean }) {
         >
           3-putt {threePutt ? "on" : "off"}
         </button>
-
-        <button className="btn" disabled={busy} onClick={() => void onSave()}>
-          Next hole
-        </button>
         {error ? <p className="err">{error}</p> : null}
+      </div>
+
+      <div className="thumbbar">
+        <button className="btn ghost" type="button" onClick={() => go(`/g/${id}/board`)}>
+          Leaderboard
+        </button>
+        <button className="btn" disabled={busy} onClick={() => void onSave()}>
+          Next
+        </button>
       </div>
     </div>
   );

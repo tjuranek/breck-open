@@ -50,10 +50,14 @@ a {
 
 .wrap {
   width: 100%;
-  max-width: 40rem;
+  max-width: 390px;
   margin: 0 auto;
   padding: var(--pad-t) var(--pad-r) var(--pad-b) var(--pad-x);
   min-width: 0;
+}
+
+.wrap.hasbar {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
 }
 
 h1 {
@@ -95,7 +99,8 @@ select {
 
 .btn {
   width: 100%;
-  min-height: 3.6rem;
+  min-height: 44px;
+  height: 3.6rem;
   margin-top: 0.85rem;
   border: 0;
   border-radius: 0.9rem;
@@ -157,13 +162,14 @@ select {
 
 .chips {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
-  gap: 0.3rem;
+  grid-template-columns: repeat(5, minmax(44px, 1fr));
+  gap: 0.35rem;
   margin: 0.65rem 0 0.75rem;
 }
 
 .hole {
-  min-height: 3rem;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 0.65rem;
   border: 2px solid var(--line);
   background: #101a12;
@@ -220,7 +226,8 @@ select {
 .strokes button {
   width: 4.8rem;
   height: 4.8rem;
-  min-width: 4.8rem;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   border-radius: 1.1rem;
   background: var(--accent);
@@ -236,8 +243,9 @@ select {
 
 .toggle {
   width: 100%;
-  min-height: 3.7rem;
-  margin-top: 0.55rem;
+  min-height: 44px;
+  height: 3.6rem;
+  margin-top: 0.5rem;
   border-radius: 0.9rem;
   border: 2px solid var(--line);
   background: #0c140e;
@@ -340,14 +348,30 @@ select {
   word-break: break-all;
 }
 
+.thumbbar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(390px, 100%);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem var(--pad-r) calc(0.5rem + env(safe-area-inset-bottom, 0px)) var(--pad-x);
+  background: #132016f2;
+  border-top: 1px solid var(--line);
+  z-index: 8;
+}
+
+.thumbbar .btn {
+  margin-top: 0;
+  min-height: 44px;
+  flex: 1;
+}
+
 @media (max-width: 380px) {
   .row {
     flex-direction: column;
     gap: 0;
-  }
-
-  .chips {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
@@ -356,20 +380,22 @@ select {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     grid-template-areas:
-      "top top"
+      "head card"
       "chips card";
-    column-gap: 0.85rem;
+    column-gap: 0.75rem;
     align-items: start;
+    max-width: none;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
 
-  .wrap.play .playtop {
-    grid-area: top;
+  .wrap.play .holehead {
+    grid-area: head;
   }
 
   .wrap.play .chips {
     grid-area: chips;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
+    grid-template-columns: repeat(3, minmax(44px, 1fr));
+    margin: 0.4rem 0 0;
   }
 
   .wrap.play .card {
@@ -378,19 +404,21 @@ select {
   }
 
   .strokes button {
-    width: 3.8rem;
-    height: 3.8rem;
-    min-width: 3.8rem;
+    width: 3.4rem;
+    height: 3.4rem;
+    min-width: 44px;
+    min-height: 44px;
     font-size: 1.8rem;
   }
 
   .toggle {
-    min-height: 3.1rem;
-    margin-top: 0.4rem;
+    min-height: 44px;
+    height: 2.9rem;
+    margin-top: 0.35rem;
   }
 
-  .btn {
-    min-height: 3.1rem;
-    margin-top: 0.5rem;
+  .thumbbar {
+    width: 100%;
+    max-width: none;
   }
 }
