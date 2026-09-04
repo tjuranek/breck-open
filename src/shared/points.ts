@@ -19,6 +19,21 @@ export function holeAwards(strokes: number, par: number): { birdies: number; eag
   return { birdies: 0, eagles: 0 };
 }
 
+export function holeDelta(score: HoleScore, par: number): number {
+  const awards = holeAwards(score.strokes, par);
+  return awards.birdies + awards.eagles + (score.threePutt ? -1 : 0);
+}
+
+export function holeMark(strokes: number, par: number): string {
+  const rel = strokes - par;
+  if (rel <= -3) return "albatross";
+  if (rel === -2) return "eagle";
+  if (rel === -1) return "birdie";
+  if (rel === 0) return "par";
+  if (rel === 1) return "bogey";
+  return `+${rel}`;
+}
+
 export function bonusFromScores(
   scores: HoleScore[],
   nine: Nine,

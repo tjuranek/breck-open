@@ -3,6 +3,7 @@ import { getGame, joinGame, saveHole, startGame } from "../api.ts";
 import { go } from "../App.tsx";
 import { getPlayerId } from "../player.ts";
 import { COURSE, TEE_LABEL, firApplies, getHole } from "../shared/course.ts";
+import { holeDelta, holeMark } from "../shared/points.ts";
 import type { GameState, HoleScore, PointsBreakdown } from "../shared/types.ts";
 
 function inviteUrl(id: string): string {
@@ -317,7 +318,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
         </button>
 
         <button className="btn" disabled={busy} onClick={() => void onSave()}>
-          {hole < 9 ? "Save / Next hole" : "Save hole"}
+          {hole < 9 ? "Next hole" : "Save hole"}
         </button>
         {error ? <p className="err">{error}</p> : null}
       </div>
@@ -345,22 +346,55 @@ function Board({ game, detailed = false }: { game: GameState; detailed?: boolean
   return (
     <div className="card board">
       <strong>Leaderboard</strong>
-      <ul className="list">
-        {game.leaderboard.map((row, i) => (
-          <li key={row.playerId}>
-            <div>
+      {game.leaderboard.map((row, i) => {
+        const holes = COURSE[game.nine].holes;
+        return (
+          <div key={row.playerId} className="cardscore">
+            <div className="scorehead">
               <div>
                 {i + 1}. {row.name}
+                <div className="meta">
+                  {row.holesSubmitted}/9 · {row.strokes || "—"} · {fmtToPar(row.toPar)}
+                </div>
+                {detailed ? <div className="breakdown">{breakdown(row.points)}</div> : null}
               </div>
-              <div className="meta">
-                {row.holesSubmitted}/9 · {row.strokes || "—"} · {fmtToPar(row.toPar)}
-              </div>
-              {detailed ? <div className="breakdown">{breakdown(row.points)}</div> : null}
+              <div className="pts">{fmtPts(row.points.total)} pts</div>
             </div>
-            <div className="pts">{fmtPts(row.points.total)} pts</div>
-          </li>
-        ))}
-      </ul>
+            <div className="scoregrid">
+              {holes.map((h) => {
+                const s = game.scores[row.playerId]?.find((x) => x.hole === h.hole);
+                if (!s) {
+                  return (
+                    <div key={h.hole} className="scorecell empty">
+                      <span>{h.hole}</span>
+                      <strong>·</strong>
+                    </div>
+                  );
+                }
+                const delta = holeDelta(s, h.par);
+                const mark = holeMark(s.strokes, h.par);
+                const flags = [
+                  firApplies(h.par) ? (s.fir ? "FIR" : null) : null,
+                  s.gir ? "GIR" : null,
+                  s.threePutt ? "3P" : null,
+                ].filter(Boolean);
+                return (
+                  <div key={h.hole} className="scorecell">
+                    <span>
+                      {h.hole} {mark !== "par" && mark !== "bogey" && !mark.startsWith("+") ? mark : ""}
+                    </span>
+                    <strong>{s.strokes}</strong>
+                    <em>
+                      {flags.join(" ")}
+                      {delta ? ` ${fmtPts(delta)}` : ""}
+                    </em>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -5,6 +5,8 @@ import {
   buildLeaderboard,
   countedFir,
   holeAwards,
+  holeDelta,
+  holeMark,
   placementPoints,
 } from "../src/shared/points.ts";
 import type { HoleScore, Player } from "../src/shared/types.ts";
@@ -71,6 +73,17 @@ describe("FIR on par 3", () => {
     const bonus = bonusFromScores(scores, "bear");
     expect(bonus.firCount).toBe(3);
     expect(bonus.firBonus).toBe(0);
+  });
+});
+
+describe("hole delta", () => {
+  it("birdie +1, eagle +3, 3-putt −1, FIR/GIR do not change the hole", () => {
+    expect(holeDelta(hole(1, 3), 4)).toBe(1);
+    expect(holeDelta(hole(2, 3), 5)).toBe(3);
+    expect(holeDelta(hole(3, 4, { threePutt: true }), 4)).toBe(-1);
+    expect(holeDelta(hole(1, 3, { fir: true, gir: true }), 4)).toBe(1);
+    expect(holeMark(3, 5)).toBe("eagle");
+    expect(holeMark(3, 4)).toBe("birdie");
   });
 });
 
