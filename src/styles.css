@@ -1,30 +1,39 @@
 :root {
   --bg: #132016;
   --fg: #f3efe4;
-  --muted: #b7c4b4;
+  --muted: #c5d2c2;
   --card: #1d3222;
-  --line: #2d4a33;
+  --line: #3a5a40;
   --gold: #e8c547;
   --accent: #3f7a4b;
-  --danger: #c45c4a;
-  --on: #2f6b3c;
+  --on: #e8c547;
+  --pad-x: max(0.85rem, env(safe-area-inset-left, 0px));
+  --pad-r: max(0.85rem, env(safe-area-inset-right, 0px));
+  --pad-t: max(0.7rem, env(safe-area-inset-top, 0px));
+  --pad-b: max(1.4rem, env(safe-area-inset-bottom, 0px));
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
 html,
 body,
 #root {
-  min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 16px/1.4 ui-sans-serif, system-ui, sans-serif;
+  font: 17px/1.35 ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
 button,
@@ -32,6 +41,7 @@ input,
 select {
   font: inherit;
   color: inherit;
+  touch-action: manipulation;
 }
 
 a {
@@ -39,55 +49,60 @@ a {
 }
 
 .wrap {
-  max-width: 28rem;
+  width: 100%;
+  max-width: 40rem;
   margin: 0 auto;
-  padding: 1rem 1rem 5rem;
+  padding: var(--pad-t) var(--pad-r) var(--pad-b) var(--pad-x);
+  min-width: 0;
 }
 
 h1 {
   margin: 0 0 0.25rem;
-  font-size: 1.75rem;
+  font-size: 1.7rem;
+  overflow-wrap: anywhere;
 }
 
 .sub {
   color: var(--muted);
-  margin: 0 0 1.25rem;
+  margin: 0 0 1rem;
 }
 
 .card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 1rem;
-  padding: 1rem;
-  margin-bottom: 0.85rem;
+  padding: 0.95rem;
+  margin-bottom: 0.8rem;
+  min-width: 0;
 }
 
 label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--muted);
-  margin: 0.7rem 0 0.3rem;
+  margin: 0.75rem 0 0.3rem;
 }
 
 input,
 select {
   width: 100%;
-  min-height: 3.1rem;
+  min-height: 3.4rem;
   padding: 0.7rem 0.8rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  border: 2px solid var(--line);
   background: #101a12;
 }
 
 .btn {
   width: 100%;
-  min-height: 3.4rem;
+  min-height: 3.6rem;
   margin-top: 0.85rem;
   border: 0;
-  border-radius: 0.85rem;
+  border-radius: 0.9rem;
   background: var(--gold);
   color: #132016;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 1.1rem;
 }
 
 .btn:disabled {
@@ -97,21 +112,27 @@ select {
 .btn.ghost {
   background: transparent;
   color: var(--fg);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
 }
 
 .btn.small {
-  min-height: 2.8rem;
-  margin-top: 0.5rem;
+  min-height: 3.1rem;
+  margin-top: 0.2rem;
+  width: auto;
+  flex-shrink: 0;
+  padding: 0 1rem;
+  font-size: 1rem;
 }
 
 .row {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.55rem;
+  min-width: 0;
 }
 
 .row > * {
   flex: 1;
+  min-width: 0;
 }
 
 .err {
@@ -124,34 +145,29 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.playtop .btn.small {
-  margin-top: 0.35rem;
-  width: auto;
-  padding: 0 1rem;
+  gap: 0.65rem;
+  min-width: 0;
 }
 
 .top h1,
 .top h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
 }
 
 .chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0.65rem 0 0.75rem;
 }
 
-.chip,
 .hole {
-  min-width: 2.7rem;
-  min-height: 2.7rem;
-  border-radius: 0.7rem;
-  border: 1px solid var(--line);
+  min-height: 3rem;
+  border-radius: 0.65rem;
+  border: 2px solid var(--line);
   background: #101a12;
+  font-weight: 700;
 }
 
 .hole.on {
@@ -161,7 +177,7 @@ select {
 }
 
 .hole.done {
-  outline: 2px solid var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .list {
@@ -173,95 +189,79 @@ select {
 .list li {
   display: flex;
   justify-content: space-between;
-  padding: 0.65rem 0;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.55rem 0;
   border-bottom: 1px solid var(--line);
 }
 
 .meta {
   color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.tabs {
-  display: flex;
-  gap: 0.4rem;
-  margin: 0.75rem 0;
-}
-
-.tabs a,
-.tabs button {
-  flex: 1;
-  min-height: 2.8rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--line);
-  background: #101a12;
-  text-align: center;
-  text-decoration: none;
-  color: var(--fg);
-  display: grid;
-  place-items: center;
-}
-
-.tabs .on {
-  background: var(--gold);
-  color: #132016;
-  border-color: var(--gold);
+  font-size: 0.95rem;
 }
 
 .holehead {
-  padding: 0 0 0.35rem;
+  min-width: 0;
 }
 
 .holehead .num {
-  font-size: 2.2rem;
+  font-size: clamp(1.7rem, 8vw, 2.3rem);
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .strokes {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.7rem;
 }
 
 .strokes button {
-  width: 5.2rem;
-  height: 5.2rem;
+  width: 4.8rem;
+  height: 4.8rem;
+  min-width: 4.8rem;
   border: 0;
   border-radius: 1.1rem;
   background: var(--accent);
-  font-size: 2.4rem;
+  font-size: 2.3rem;
   font-weight: 800;
 }
 
 .strokes strong {
-  font-size: 4rem;
+  font-size: clamp(2.8rem, 16vw, 4.2rem);
   line-height: 1;
+  min-width: 0;
 }
 
 .toggle {
   width: 100%;
-  min-height: 4rem;
-  margin-top: 0.65rem;
+  min-height: 3.7rem;
+  margin-top: 0.55rem;
   border-radius: 0.9rem;
-  border: 1px solid var(--line);
-  background: #101a12;
-  font-weight: 700;
+  border: 2px solid var(--line);
+  background: #0c140e;
+  font-weight: 800;
+  font-size: 1.15rem;
 }
 
 .toggle.on {
-  background: var(--on);
+  background: var(--gold);
+  color: #132016;
   border-color: var(--gold);
 }
 
 .board .pts {
   font-weight: 800;
   color: var(--gold);
+  font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .breakdown {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .cardscore {
@@ -270,42 +270,127 @@ select {
   border-top: 1px solid var(--line);
 }
 
+.cardscore:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .scorehead {
   display: flex;
   justify-content: space-between;
   gap: 0.6rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.55rem;
+  min-width: 0;
 }
 
 .audit {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.audit th,
-.audit td {
-  padding: 0.4rem 0.2rem;
-  text-align: center;
+.auditrow {
+  padding: 0.55rem 0;
   border-bottom: 1px solid var(--line);
 }
 
-.audit th {
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.audit td:nth-child(3) {
-  color: var(--gold);
-  text-align: left;
-  font-size: 0.75rem;
-}
-
-.audit tr.empty td {
+.auditrow.empty {
   color: var(--line);
+}
+
+.auditmain {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.audithole {
+  width: 1.4rem;
+  flex-shrink: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.auditmain strong {
+  font-size: 1.35rem;
+}
+
+.mark {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.delta {
+  margin-left: auto;
+  font-weight: 800;
+}
+
+.auditflags {
+  margin: 0.2rem 0 0 1.95rem;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 .copyok {
   color: var(--gold);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+@media (max-width: 380px) {
+  .row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .chips {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .wrap.play {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-areas:
+      "top top"
+      "chips card";
+    column-gap: 0.85rem;
+    align-items: start;
+  }
+
+  .wrap.play .playtop {
+    grid-area: top;
+  }
+
+  .wrap.play .chips {
+    grid-area: chips;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .wrap.play .card {
+    grid-area: card;
+    margin-bottom: 0;
+  }
+
+  .strokes button {
+    width: 3.8rem;
+    height: 3.8rem;
+    min-width: 3.8rem;
+    font-size: 1.8rem;
+  }
+
+  .toggle {
+    min-height: 3.1rem;
+    margin-top: 0.4rem;
+  }
+
+  .btn {
+    min-height: 3.1rem;
+    margin-top: 0.5rem;
+  }
 }

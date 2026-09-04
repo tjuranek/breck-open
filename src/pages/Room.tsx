@@ -194,6 +194,9 @@ export function Room({ id, board }: { id: string; board: boolean }) {
             id="join-name"
             required
             maxLength={24}
+            autoComplete="given-name"
+            autoCapitalize="words"
+            enterKeyHint="go"
             value={joinName}
             onChange={(e) => setJoinName(e.target.value)}
             placeholder="Dad"
@@ -266,7 +269,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   const mine = game.scores[playerId] ?? [];
 
   return (
-    <div className="wrap">
+    <div className="wrap play">
       <div className="playtop">
         <div className="holehead">
           <div className="num">Hole {def.hole}</div>
@@ -367,52 +370,39 @@ function Board({ game, locked = false }: { game: GameState; locked?: boolean }) 
               </div>
               <div className="pts">{fmtPts(row.points.total)} pts</div>
             </div>
-            <table className="audit">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Str</th>
-                  <th></th>
-                  <th>FIR</th>
-                  <th>GIR</th>
-                  <th>3P</th>
-                  <th>Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {holes.map((h) => {
-                  const s = game.scores[row.playerId]?.find((x) => x.hole === h.hole);
-                  if (!s) {
-                    return (
-                      <tr key={h.hole} className="empty">
-                        <td>{h.hole}</td>
-                        <td>·</td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                      </tr>
-                    );
-                  }
-                  const mark = holeMark(s.strokes, h.par);
-                  const birdieEagle = mark === "birdie" || mark === "eagle" || mark === "albatross" ? mark : "";
-                  const fir = firApplies(h.par) ? s.fir : null;
-                  const delta = holeDelta(s, h.par);
+            <ol className="audit">
+              {holes.map((h) => {
+                const s = game.scores[row.playerId]?.find((x) => x.hole === h.hole);
+                if (!s) {
                   return (
-                    <tr key={h.hole}>
-                      <td>{h.hole}</td>
-                      <td>{s.strokes}</td>
-                      <td>{birdieEagle}</td>
-                      <td>{flag(fir)}</td>
-                      <td>{flag(s.gir)}</td>
-                      <td>{flag(s.threePutt)}</td>
-                      <td>{delta ? fmtPts(delta) : "0"}</td>
-                    </tr>
+                    <li key={h.hole} className="auditrow empty">
+                      <div className="auditmain">
+                        <span className="audithole">{h.hole}</span>
+                        <strong>·</strong>
+                      </div>
+                    </li>
                   );
-                })}
-              </tbody>
-            </table>
+                }
+                const mark = holeMark(s.strokes, h.par);
+                const birdieEagle =
+                  mark === "birdie" || mark === "eagle" || mark === "albatross" ? mark : "";
+                const fir = firApplies(h.par) ? s.fir : null;
+                const delta = holeDelta(s, h.par);
+                return (
+                  <li key={h.hole} className="auditrow">
+                    <div className="auditmain">
+                      <span className="audithole">{h.hole}</span>
+                      <strong>{s.strokes}</strong>
+                      {birdieEagle ? <span className="mark">{birdieEagle}</span> : null}
+                      <span className="delta">{delta ? fmtPts(delta) : "0"}</span>
+                    </div>
+                    <div className="auditflags">
+                      FIR {flag(fir)} · GIR {flag(s.gir)} · 3P {flag(s.threePutt)}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
           </div>
         );
       })}

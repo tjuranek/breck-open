@@ -56,7 +56,9 @@ export function Home() {
           id="player"
           required
           maxLength={24}
-          autoComplete="name"
+          autoComplete="given-name"
+          autoCapitalize="words"
+          enterKeyHint="next"
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
           placeholder="Thomas"
@@ -97,6 +99,10 @@ export function Home() {
         <input
           id="code"
           value={code}
+          autoCapitalize="none"
+          autoCorrect="off"
+          enterKeyHint="go"
+          inputMode="text"
           onChange={(e) => setCode(e.target.value)}
           placeholder="https://…/g/ab12cd34"
         />
