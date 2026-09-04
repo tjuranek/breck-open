@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { getGame, joinGame, saveHole, startGame } from "../api.ts";
 import { go } from "../App.tsx";
 import { getPlayerId } from "../player.ts";
@@ -47,6 +47,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   const [gir, setGir] = useState(false);
   const [threePutt, setThreePutt] = useState(false);
   const [busy, setBusy] = useState(false);
+  const hydratedHole = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +72,8 @@ export function Room({ id, board }: { id: string; board: boolean }) {
 
   useEffect(() => {
     if (!game) return;
+    if (hydratedHole.current === hole) return;
+    hydratedHole.current = hole;
     const me = savedFor(game, playerId, hole);
     const def = getHole(game.nine, hole);
     if (me) {
