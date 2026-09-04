@@ -119,11 +119,18 @@ select {
   margin: 0.6rem 0 0;
 }
 
+.playtop,
 .top {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 0.75rem;
+}
+
+.playtop .btn.small {
+  margin-top: 0.35rem;
+  width: auto;
+  padding: 0 1rem;
 }
 
 .top h1,
@@ -202,12 +209,11 @@ select {
 }
 
 .holehead {
-  text-align: center;
-  padding: 0.4rem 0 0.8rem;
+  padding: 0 0 0.35rem;
 }
 
 .holehead .num {
-  font-size: 2.4rem;
+  font-size: 2.2rem;
   font-weight: 800;
 }
 
@@ -271,34 +277,31 @@ select {
   margin-bottom: 0.5rem;
 }
 
-.scoregrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.35rem;
+.audit {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
-.scorecell {
-  background: #101a12;
-  border: 1px solid var(--line);
-  border-radius: 0.6rem;
-  padding: 0.35rem 0.4rem;
-  min-height: 3.4rem;
+.audit th,
+.audit td {
+  padding: 0.4rem 0.2rem;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
 }
 
-.scorecell span,
-.scorecell em {
-  display: block;
-  font-size: 0.7rem;
-  font-style: normal;
+.audit th {
   color: var(--muted);
+  font-weight: 600;
 }
 
-.scorecell strong {
-  display: block;
-  font-size: 1.2rem;
+.audit td:nth-child(3) {
+  color: var(--gold);
+  text-align: left;
+  font-size: 0.75rem;
 }
 
-.scorecell.empty strong {
+.audit tr.empty td {
   color: var(--line);
 }
 

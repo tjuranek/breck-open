@@ -130,7 +130,8 @@ export function Room({ id, board }: { id: string; board: boolean }) {
         threePutt,
       });
       setGame(next);
-      if (next.status !== "finished" && hole < 9) setHole(hole + 1);
+      if (hole < 9 && next.status !== "finished") setHole(hole + 1);
+      else go(`/g/${id}/board`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -209,17 +210,24 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   if (game.status === "finished" || (board && game.status !== "lobby")) {
     return (
       <div className="wrap">
-        <Header game={game} />
-        <nav className="tabs">
-          <button type="button" onClick={() => go(`/g/${id}`)}>
-            Play
-          </button>
-          <button type="button" className="on" onClick={() => go(`/g/${id}/board`)}>
-            Board
-          </button>
-        </nav>
-        {game.status === "finished" ? <h2>Round over</h2> : null}
-        <Board game={game} detailed={game.status === "finished"} />
+        <div className="playtop">
+          <div>
+            <h1>{game.status === "finished" ? "Round over" : "Scorecard"}</h1>
+            <p className="sub">
+              {COURSE[game.nine].label} · {TEE_LABEL[game.tee]} · {game.name}
+            </p>
+          </div>
+          {game.status !== "finished" ? (
+            <button className="btn ghost small" type="button" onClick={() => go(`/g/${id}`)}>
+              Play
+            </button>
+          ) : (
+            <button className="btn ghost small" type="button" onClick={() => go("/")}>
+              Home
+            </button>
+          )}
+        </div>
+        <Board game={game} locked={game.status === "finished"} />
       </div>
     );
   }
@@ -259,15 +267,17 @@ export function Room({ id, board }: { id: string; board: boolean }) {
 
   return (
     <div className="wrap">
-      <Header game={game} />
-      <nav className="tabs">
-        <button type="button" className="on" onClick={() => go(`/g/${id}`)}>
-          Play
-        </button>
-        <button type="button" onClick={() => go(`/g/${id}/board`)}>
+      <div className="playtop">
+        <div className="holehead">
+          <div className="num">Hole {def.hole}</div>
+          <div className="meta">
+            Par {def.par} · {def.yards[game.tee]} yds
+          </div>
+        </div>
+        <button className="btn ghost small" type="button" onClick={() => go(`/g/${id}/board`)}>
           Board
         </button>
-      </nav>
+      </div>
 
       <div className="chips">
         {COURSE[game.nine].holes.map((h) => (
@@ -280,13 +290,6 @@ export function Room({ id, board }: { id: string; board: boolean }) {
             {h.hole}
           </button>
         ))}
-      </div>
-
-      <div className="holehead">
-        <div className="num">Hole {def.hole}</div>
-        <div className="meta">
-          Par {def.par} · {def.yards[game.tee]} yds · HCP {def.hcp}
-        </div>
       </div>
 
       <div className="card">
@@ -318,7 +321,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
         </button>
 
         <button className="btn" disabled={busy} onClick={() => void onSave()}>
-          {hole < 9 ? "Next hole" : "Save hole"}
+          Next hole
         </button>
         {error ? <p className="err">{error}</p> : null}
       </div>
@@ -342,10 +345,14 @@ function Header({ game }: { game: GameState }) {
   );
 }
 
-function Board({ game, detailed = false }: { game: GameState; detailed?: boolean }) {
+function flag(on: boolean | null): string {
+  if (on === null) return "—";
+  return on ? "yes" : "·";
+}
+
+function Board({ game, locked = false }: { game: GameState; locked?: boolean }) {
   return (
     <div className="card board">
-      <strong>Leaderboard</strong>
       {game.leaderboard.map((row, i) => {
         const holes = COURSE[game.nine].holes;
         return (
@@ -356,42 +363,56 @@ function Board({ game, detailed = false }: { game: GameState; detailed?: boolean
                 <div className="meta">
                   {row.holesSubmitted}/9 · {row.strokes || "—"} · {fmtToPar(row.toPar)}
                 </div>
-                {detailed ? <div className="breakdown">{breakdown(row.points)}</div> : null}
+                {locked ? <div className="breakdown">{breakdown(row.points)}</div> : null}
               </div>
               <div className="pts">{fmtPts(row.points.total)} pts</div>
             </div>
-            <div className="scoregrid">
-              {holes.map((h) => {
-                const s = game.scores[row.playerId]?.find((x) => x.hole === h.hole);
-                if (!s) {
+            <table className="audit">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Str</th>
+                  <th></th>
+                  <th>FIR</th>
+                  <th>GIR</th>
+                  <th>3P</th>
+                  <th>Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {holes.map((h) => {
+                  const s = game.scores[row.playerId]?.find((x) => x.hole === h.hole);
+                  if (!s) {
+                    return (
+                      <tr key={h.hole} className="empty">
+                        <td>{h.hole}</td>
+                        <td>·</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                    );
+                  }
+                  const mark = holeMark(s.strokes, h.par);
+                  const birdieEagle = mark === "birdie" || mark === "eagle" || mark === "albatross" ? mark : "";
+                  const fir = firApplies(h.par) ? s.fir : null;
+                  const delta = holeDelta(s, h.par);
                   return (
-                    <div key={h.hole} className="scorecell empty">
-                      <span>{h.hole}</span>
-                      <strong>·</strong>
-                    </div>
+                    <tr key={h.hole}>
+                      <td>{h.hole}</td>
+                      <td>{s.strokes}</td>
+                      <td>{birdieEagle}</td>
+                      <td>{flag(fir)}</td>
+                      <td>{flag(s.gir)}</td>
+                      <td>{flag(s.threePutt)}</td>
+                      <td>{delta ? fmtPts(delta) : "0"}</td>
+                    </tr>
                   );
-                }
-                const delta = holeDelta(s, h.par);
-                const mark = holeMark(s.strokes, h.par);
-                const flags = [
-                  firApplies(h.par) ? (s.fir ? "FIR" : null) : null,
-                  s.gir ? "GIR" : null,
-                  s.threePutt ? "3P" : null,
-                ].filter(Boolean);
-                return (
-                  <div key={h.hole} className="scorecell">
-                    <span>
-                      {h.hole} {mark !== "par" && mark !== "bogey" && !mark.startsWith("+") ? mark : ""}
-                    </span>
-                    <strong>{s.strokes}</strong>
-                    <em>
-                      {flags.join(" ")}
-                      {delta ? ` ${fmtPts(delta)}` : ""}
-                    </em>
-                  </div>
-                );
-              })}
-            </div>
+                })}
+              </tbody>
+            </table>
           </div>
         );
       })}
