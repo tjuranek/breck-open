@@ -1,0 +1,16 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@shared/*": ["../../src/shared/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../../src/shared/**/*.ts"]
+}

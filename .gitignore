@@ -7,5 +7,7 @@ dist
 .DS_Store
 node_modules/.tmp
 .playwright-mcp
+.expo
 *.png
 !public/*.png
+!apps/mobile/assets/*.png
