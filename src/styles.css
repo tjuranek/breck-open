@@ -187,13 +187,15 @@ select {
 
 .chips {
   display: grid;
-  grid-template-columns: repeat(5, minmax(44px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
 .hole {
   min-height: 44px;
-  min-width: 44px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
   border-radius: 0.65rem;
   border: 2px solid var(--line);
   background: #101a12;
@@ -489,7 +491,7 @@ select {
   }
 
   .wrap.play .chips {
-    grid-template-columns: repeat(3, minmax(44px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .wrap.play .card {

@@ -13,7 +13,7 @@ import {
   holeCountOf,
   layoutHoles,
 } from "../shared/course.ts";
-import { headerStats, holeDelta, holeMark } from "../shared/points.ts";
+import { FIR_BONUS_AT, GIR_BONUS_AT, headerFocus, headerStats, holeDelta, holeMark } from "../shared/points.ts";
 import type { GameState, HoleScore, LeaderboardRow, NineStats, PointsBreakdown } from "../shared/types.ts";
 
 function inviteUrl(id: string): string {
@@ -266,7 +266,6 @@ export function Room({ id, board }: { id: string; board: boolean }) {
         </div>
         <StickyLive game={game} />
         {game.pastRounds.length > 0 ? <Weekend game={game} /> : null}
-        <Board game={game} locked={game.status === "finished"} />
         {game.status === "finished" && playerId === game.hostId ? (
           <div className="card">
             <strong>Start next round</strong>
@@ -281,6 +280,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
         {game.status === "finished" && playerId !== game.hostId ? (
           <p className="sub">Waiting for host to start the next round…</p>
         ) : null}
+        <Board game={game} locked={game.status === "finished"} />
         <div className="thumbbar">
           {game.status !== "finished" ? (
             <button className="btn" type="button" onClick={() => go(`/g/${id}`)}>
@@ -456,8 +456,10 @@ function StickyLive({ game }: { game: GameState }) {
 
 function LiveLine({ row, event }: { row: LeaderboardRow; event?: number }) {
   const live = headerStats(row);
-  const firOn = live.firCount >= live.firTarget;
-  const girOn = live.girCount >= live.girTarget;
+  const focus = headerFocus(row.nines);
+  const split = focus.length > 1;
+  const firOn = !split && live.firCount >= live.firTarget;
+  const girOn = !split && live.girCount >= live.girTarget;
   const label = live.labels.length > 1 ? live.labels.join("+") : live.labels[0];
   return (
     <div className="live">
@@ -466,12 +468,36 @@ function LiveLine({ row, event }: { row: LeaderboardRow; event?: number }) {
         <span>
           {live.thru} · {fmtToPar(live.toPar)}
         </span>
-        <span className={firOn ? "fill" : undefined}>
-          FIR {live.firCount}/{live.firTarget}
-        </span>
-        <span className={girOn ? "fill" : undefined}>
-          GIR {live.girCount}/{live.girTarget}
-        </span>
+        {split ? (
+          <span>
+            FIR{" "}
+            {focus.map((n, i) => (
+              <span key={`f${n.nine}`} className={n.firCount >= FIR_BONUS_AT ? "fill" : undefined}>
+                {i ? " · " : ""}
+                {n.firCount}/{FIR_BONUS_AT}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className={firOn ? "fill" : undefined}>
+            FIR {live.firCount}/{live.firTarget}
+          </span>
+        )}
+        {split ? (
+          <span>
+            GIR{" "}
+            {focus.map((n, i) => (
+              <span key={`g${n.nine}`} className={n.girCount >= GIR_BONUS_AT ? "fill" : undefined}>
+                {i ? " · " : ""}
+                {n.girCount}/{GIR_BONUS_AT}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className={girOn ? "fill" : undefined}>
+            GIR {live.girCount}/{live.girTarget}
+          </span>
+        )}
         <span>3P {live.threePutts}</span>
         {label ? <span className="livelabel">{label}</span> : null}
       </div>
@@ -487,9 +513,9 @@ function NineLine({ stat }: { stat: NineStats }) {
   return (
     <div className="nineline">
       <span>
-        {COURSE[stat.nine].label} {stat.holesSubmitted}/9 · {stat.strokes || "—"} · {fmtToPar(stat.toPar)}
+        {COURSE[stat.nine].label} {stat.holesSubmitted}/9 · {stat.strokes || "—"} · {fmtToPar(stat.toPar)}{" "}
+        <span className="pts">{fmtPts(stat.points.total)}</span>
       </span>
-      <span className="pts">{fmtPts(stat.points.total)}</span>
       {stat.fieldComplete || stat.points.total ? (
         <div className="breakdown">{breakdown(stat.points)}</div>
       ) : null}
