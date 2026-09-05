@@ -1,6 +1,9 @@
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Fade, holeSlide, tap, tapSpring } from "../anim.tsx";
 import { getGame, joinGame, saveHole, startGame, startNextRound } from "../api.ts";
 import { go } from "../App.tsx";
+import { InstallPrompt } from "../InstallPrompt.tsx";
 import { getPlayerId } from "../player.ts";
 import { SetupFields, type SetupValue } from "../SetupFields.tsx";
 import {
@@ -143,6 +146,14 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
       ? rounds.find((r) => r.index === round)!
       : rounds.find((r) => r.current) ?? null;
   const viewingPast = Boolean(selected && !selected.current);
+  const isPlay = Boolean(
+    game && me && selected?.current && game.status === "scoring" && !board && !viewingPast,
+  );
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("playlock", isPlay);
+    return () => document.documentElement.classList.remove("playlock");
+  }, [isPlay]);
 
   async function onJoin(e: FormEvent) {
     e.preventDefault();
@@ -218,20 +229,20 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
 
   if (error && !game) {
     return (
-      <div className="wrap">
+      <Fade className="wrap">
         <p className="err">{error}</p>
         <button className="btn ghost" onClick={() => go("/")}>
           Home
         </button>
-      </div>
+      </Fade>
     );
   }
 
   if (!game || !def || !selected) {
     return (
-      <div className="wrap">
+      <Fade className="wrap">
         <p className="sub">Loading…</p>
-      </div>
+      </Fade>
     );
   }
 
@@ -240,7 +251,7 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
   if (!me) {
     if (game.status === "scoring" && !viewingPast) {
       return (
-        <div className="wrap">
+        <Fade className="wrap">
           <h1>{game.name}</h1>
           <p className="sub">This round already started.</p>
           <RoundChrome id={id} game={game} selected={selected.index} />
@@ -248,12 +259,12 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
           <button className="btn ghost" onClick={() => go("/")}>
             Home
           </button>
-        </div>
+        </Fade>
       );
     }
     if (!viewingPast) {
       return (
-        <div className="wrap">
+        <Fade className="wrap">
           <h1>Join {game.name}</h1>
           <p className="sub">{title}</p>
           <form className="card" onSubmit={onJoin}>
@@ -274,7 +285,8 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
               Join room
             </button>
           </form>
-        </div>
+          <InstallPrompt />
+        </Fade>
       );
     }
   }
@@ -286,7 +298,7 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
 
   if (me && game.status === "lobby" && selected.current && !viewingPast) {
     return (
-      <div className="wrap">
+      <Fade className="wrap">
         <Header game={game} />
         <RoundChrome id={id} game={game} selected={selected.index} />
         <div className="card">
@@ -311,15 +323,16 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
             <p className="sub">Waiting for host to start…</p>
           )}
         </div>
+        <InstallPrompt />
         {error ? <p className="err">{error}</p> : null}
-      </div>
+      </Fade>
     );
   }
 
   if (showBoard) {
     const currentFinished = selected.current && game.status === "finished";
     return (
-      <div className="wrap hasbar">
+      <Fade className="wrap hasbar">
         <div className="holehead">
           <div className="num">{currentFinished ? "Round over" : "Scorecard"}</div>
           <div className="meta">
@@ -354,7 +367,7 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
             </button>
           )}
         </div>
-      </div>
+      </Fade>
     );
   }
 
@@ -365,16 +378,18 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
   }));
 
   return (
-    <div className="wrap play hasbar">
-      <div className="holehead">
-        <div className="num">
-          Hole {def.hole}
-          {holes === 18 ? <span className="ninetag">{COURSE[def.nine].label}</span> : null}
-        </div>
-        <div className="meta">
-          Par {def.par} · {def.yards[game.tee]} yds
-        </div>
-      </div>
+    <Fade className="wrap play hasbar">
+      <AnimatePresence mode="wait">
+        <motion.div key={def.hole} className="holehead" {...holeSlide}>
+          <div className="num">
+            Hole {def.hole}
+            {holes === 18 ? <span className="ninetag">{COURSE[def.nine].label}</span> : null}
+          </div>
+          <div className="meta">
+            Par {def.par} · {def.yards[game.tee]} yds
+          </div>
+        </motion.div>
+      </AnimatePresence>
 
       <div className="chipstack">
         {groups.map((g) => (
@@ -382,59 +397,101 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
             {holes === 18 ? <div className="chiplabel">{COURSE[g.nine].label}</div> : null}
             <div className="chips">
               {g.holes.map((h) => (
-                <button
+                <motion.button
                   key={h.hole}
                   type="button"
                   className={`hole ${hole === h.hole ? "on" : ""} ${mine.some((s) => s.hole === h.hole) ? "done" : ""}`}
+                  whileTap={tap}
+                  transition={tapSpring}
                   onClick={() => setHole(h.hole)}
                 >
                   {h.hole}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="card">
-        <div className="strokes">
-          <button type="button" disabled={strokes <= 1} onClick={() => setStrokes(strokes - 1)}>
-            −
-          </button>
-          <strong>{strokes}</strong>
-          <button type="button" disabled={strokes >= 15} onClick={() => setStrokes(strokes + 1)}>
-            +
-          </button>
-        </div>
+      <AnimatePresence mode="wait">
+        <motion.div key={hole} className="card" {...holeSlide}>
+          <div className="strokes">
+            <motion.button
+              type="button"
+              disabled={strokes <= 1}
+              whileTap={tap}
+              transition={tapSpring}
+              onClick={() => setStrokes(strokes - 1)}
+            >
+              −
+            </motion.button>
+            <strong>{strokes}</strong>
+            <motion.button
+              type="button"
+              disabled={strokes >= 15}
+              whileTap={tap}
+              transition={tapSpring}
+              onClick={() => setStrokes(strokes + 1)}
+            >
+              +
+            </motion.button>
+          </div>
 
-        {showFir ? (
-          <button type="button" className={`toggle ${fir ? "on" : ""}`} onClick={() => setFir(!fir)}>
-            FIR {fir ? "on" : "off"}
-          </button>
-        ) : null}
+          {showFir ? (
+            <motion.button
+              type="button"
+              className={`toggle ${fir ? "on" : ""}`}
+              whileTap={tap}
+              transition={tapSpring}
+              onClick={() => setFir(!fir)}
+            >
+              FIR {fir ? "on" : "off"}
+            </motion.button>
+          ) : null}
 
-        <button type="button" className={`toggle ${gir ? "on" : ""}`} onClick={() => setGir(!gir)}>
-          GIR {gir ? "on" : "off"}
-        </button>
-        <button
-          type="button"
-          className={`toggle ${threePutt ? "on" : ""}`}
-          onClick={() => setThreePutt(!threePutt)}
-        >
-          3-putt {threePutt ? "on" : "off"}
-        </button>
-        {error ? <p className="err">{error}</p> : null}
-      </div>
+          <motion.button
+            type="button"
+            className={`toggle ${gir ? "on" : ""}`}
+            whileTap={tap}
+            transition={tapSpring}
+            onClick={() => setGir(!gir)}
+          >
+            GIR {gir ? "on" : "off"}
+          </motion.button>
+          <motion.button
+            type="button"
+            className={`toggle ${threePutt ? "on" : ""}`}
+            whileTap={tap}
+            transition={tapSpring}
+            onClick={() => setThreePutt(!threePutt)}
+          >
+            3-putt {threePutt ? "on" : "off"}
+          </motion.button>
+          {error ? <p className="err">{error}</p> : null}
+        </motion.div>
+      </AnimatePresence>
 
       <div className="thumbbar">
-        <button className="btn ghost" type="button" onClick={() => go(`/g/${id}/board`)}>
+        <motion.button
+          className="btn ghost"
+          type="button"
+          whileTap={tap}
+          transition={tapSpring}
+          onClick={() => go(`/g/${id}/board`)}
+        >
           Leaderboard
-        </button>
-        <button className="btn" disabled={busy} onClick={() => void onSave()}>
+        </motion.button>
+        <motion.button
+          className="btn"
+          disabled={busy}
+          whileTap={tap}
+          transition={tapSpring}
+          onClick={() => void onSave()}
+        >
           Next
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </Fade>
   );
 }
 
@@ -461,14 +518,16 @@ function RoundChrome({ id, game, selected }: { id: string; game: GameState; sele
     <>
       <div className="tabs">
         {rounds.map((r) => (
-          <button
+          <motion.button
             key={r.index}
             type="button"
             className={`tab ${r.index === selected ? "on" : ""}`}
+            whileTap={tap}
+            transition={tapSpring}
             onClick={() => enterRound(id, r)}
           >
             {tabLabel(r.index, rounds.length)}
-          </button>
+          </motion.button>
         ))}
       </div>
       <div className="strip">

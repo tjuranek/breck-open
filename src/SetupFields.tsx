@@ -1,3 +1,5 @@
+import { motion } from "motion/react";
+import { tap, tapSpring } from "./anim.tsx";
 import { COURSE, NINES, TEES, TEE_LABEL, otherNine } from "./shared/course.ts";
 import type { Format, Nine, Tee } from "./shared/types.ts";
 
@@ -41,20 +43,24 @@ export function SetupFields({
     <>
       <label>Holes</label>
       <div className="picks">
-        <button
+        <motion.button
           type="button"
           className={`toggle ${value.format === 9 ? "on" : ""}`}
+          whileTap={tap}
+          transition={tapSpring}
           onClick={() => setFormat(9)}
         >
           Nine
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           type="button"
           className={`toggle ${value.format === 18 ? "on" : ""}`}
+          whileTap={tap}
+          transition={tapSpring}
           onClick={() => setFormat(18)}
         >
           Eighteen
-        </button>
+        </motion.button>
       </div>
       {value.format === 9 ? (
         <div>
