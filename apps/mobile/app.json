@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Breck Open",
+    "slug": "breck-open",
+    "scheme": "breckopen",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0E1510"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "lab.krux.breckopen",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Yards to the green while you score"
+      }
+    },
+    "android": {
+      "package": "lab.krux.breckopen",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0E1510"
+      },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Yards to the green while you score"
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "https://breck-open.krux-lab.workers.dev"
+    }
+  }
+}

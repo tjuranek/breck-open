@@ -10,7 +10,9 @@
     "test": "vitest run",
     "preview": "pnpm run build && vite preview",
     "deploy": "pnpm run build && wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "mobile": "npm --prefix apps/mobile start",
+    "mobile:typecheck": "npm --prefix apps/mobile run typecheck"
   },
   "dependencies": {
     "mapbox-gl": "^3.30.0",
