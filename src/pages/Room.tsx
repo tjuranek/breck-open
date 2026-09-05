@@ -425,7 +425,7 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div key={hole} className="card" {...holeSlide}>
+        <motion.div key={hole} className="card playcard" {...holeSlide}>
           <div className="strokes">
             <motion.button
               type="button"
@@ -448,36 +448,37 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
             </motion.button>
           </div>
 
-          {showFir ? (
+          <div className="toggles">
+            {showFir ? (
+              <motion.button
+                type="button"
+                className={`toggle ${fir ? "on" : ""}`}
+                whileTap={tap}
+                transition={tapSpring}
+                onClick={() => setFir(!fir)}
+              >
+                FIR
+              </motion.button>
+            ) : null}
             <motion.button
               type="button"
-              className={`toggle ${fir ? "on" : ""}`}
+              className={`toggle ${gir ? "on" : ""}`}
               whileTap={tap}
               transition={tapSpring}
-              onClick={() => setFir(!fir)}
+              onClick={() => setGir(!gir)}
             >
-              FIR {fir ? "on" : "off"}
+              GIR
             </motion.button>
-          ) : null}
-
-          <motion.button
-            type="button"
-            className={`toggle ${gir ? "on" : ""}`}
-            whileTap={tap}
-            transition={tapSpring}
-            onClick={() => setGir(!gir)}
-          >
-            GIR {gir ? "on" : "off"}
-          </motion.button>
-          <motion.button
-            type="button"
-            className={`toggle ${threePutt ? "on" : ""}`}
-            whileTap={tap}
-            transition={tapSpring}
-            onClick={() => setThreePutt(!threePutt)}
-          >
-            3-putt {threePutt ? "on" : "off"}
-          </motion.button>
+            <motion.button
+              type="button"
+              className={`toggle ${threePutt ? "on" : ""}`}
+              whileTap={tap}
+              transition={tapSpring}
+              onClick={() => setThreePutt(!threePutt)}
+            >
+              3-putt
+            </motion.button>
+          </div>
           {error ? <p className="err">{error}</p> : null}
         </motion.div>
       </AnimatePresence>

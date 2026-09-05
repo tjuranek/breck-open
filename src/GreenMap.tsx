@@ -41,10 +41,10 @@ export function GreenMap({
       attributionControl: false,
       dragRotate: false,
       pitchWithRotate: false,
-      fadeDuration: prefersReducedMotion() ? 0 : 300,
+      fadeDuration: prefersReducedMotion() ? 0 : 200,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
-    greenMark.current = new mapboxgl.Marker({ color: "#e8c547" })
+    greenMark.current = new mapboxgl.Marker({ color: "#0A84FF" })
       .setLngLat([green.lng, green.lat])
       .addTo(map);
     mapRef.current = map;
@@ -74,7 +74,7 @@ export function GreenMap({
       map.fitBounds(bounds, {
         padding: 36,
         maxZoom: 17.2,
-        duration: prefersReducedMotion() ? 0 : 450,
+        duration: prefersReducedMotion() ? 0 : 200,
       });
     } else {
       userMark.current?.remove();
@@ -82,13 +82,13 @@ export function GreenMap({
       map.easeTo({
         center: [green.lng, green.lat],
         zoom: 16.2,
-        duration: prefersReducedMotion() ? 0 : 350,
+        duration: prefersReducedMotion() ? 0 : 200,
       });
     }
   }, [green.lat, green.lng, user?.lat, user?.lng]);
 
   return (
-    <div className="rangewrap">
+    <div className="rangewrap card">
       <div className="todistance">
         {yards !== null ? (
           <>
