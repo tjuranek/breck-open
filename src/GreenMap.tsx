@@ -39,7 +39,8 @@ export function GreenMap({
       center: [green.lng, green.lat],
       zoom: 16.2,
       attributionControl: false,
-      cooperativeGestures: true,
+      dragRotate: false,
+      pitchWithRotate: false,
       fadeDuration: prefersReducedMotion() ? 0 : 300,
     });
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
