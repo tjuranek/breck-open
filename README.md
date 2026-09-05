@@ -12,7 +12,7 @@ One Cloudflare Worker + Vite React SPA. Each room is a SQLite-backed Durable Obj
 4. Host taps **Start round** when everyone is in.
 5. Score hole-by-hole: strokes, FIR (par 4/5 only), GIR, 3-putt. **Save / Next hole**. 18 is one room — holes 1–9 then 10–18.
 6. **Board** anytime: sticky live thru / to-par / FIR / GIR / 3-putts (bonus targets fill live). Audit stack under that. Placement locks per nine when that nine is in.
-7. When the round is in, the end screen shows per-nine and combined points. Host can **Start next round** on the same invite (reuse setup or pick again). Weekend standings sum placement + bonus across rounds.
+7. When the round is in, the end screen shows per-nine and combined points. Host can **Start next round** on the same invite (reuse setup or pick again). Lobby tabs are **Today / Tomorrow** (or Round 1 / 2). Tap a tab to open that nine/18. A thin weekend points strip sits under the tabs. Each scorecard stays on its own screen.
 
 ## Points (per 9)
 

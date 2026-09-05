@@ -2,6 +2,7 @@ import { COURSE, firApplies, getHole, holeCountOf } from "./course.ts";
 import type {
   EventStanding,
   GameState,
+  GameStatus,
   HoleScore,
   LeaderboardRow,
   Nine,
@@ -9,6 +10,7 @@ import type {
   PastRound,
   Player,
   PointsBreakdown,
+  Tee,
 } from "./types.ts";
 
 export const FIR_BONUS_AT = 4;
@@ -269,6 +271,45 @@ export function buildEventStandings(
   });
   rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   return rows;
+}
+
+export type RoundView = {
+  index: number;
+  nines: Nine[];
+  tee: Tee;
+  status: GameStatus;
+  scores: Record<string, HoleScore[]>;
+  leaderboard: LeaderboardRow[];
+  current: boolean;
+};
+
+export function tabLabel(index: number, count: number): string {
+  if (count <= 2) return index === 1 ? "Today" : "Tomorrow";
+  return `Round ${index}`;
+}
+
+export function listRounds(game: GameState): RoundView[] {
+  const past: RoundView[] = game.pastRounds.map((r) => ({
+    index: r.index,
+    nines: r.nines,
+    tee: r.tee,
+    status: "finished",
+    scores: r.scores,
+    leaderboard: buildLeaderboard(game.players, r.scores, r.nines),
+    current: false,
+  }));
+  return [
+    ...past,
+    {
+      index: game.roundIndex,
+      nines: game.nines,
+      tee: game.tee,
+      status: game.status,
+      scores: game.scores,
+      leaderboard: game.leaderboard,
+      current: true,
+    },
+  ];
 }
 
 export function withLeaderboard(

@@ -9,8 +9,10 @@ import {
   holeAwards,
   holeDelta,
   holeMark,
+  listRounds,
   nineSlice,
   placementPoints,
+  tabLabel,
 } from "../src/shared/points.ts";
 import type { HoleScore, LeaderboardRow, Player } from "../src/shared/types.ts";
 
@@ -421,5 +423,38 @@ describe("multi-round points sum", () => {
         ],
       },
     ]);
+  });
+
+  it("tabs are Today/Tomorrow for two rounds, Round N after that", () => {
+    expect(tabLabel(1, 1)).toBe("Today");
+    expect(tabLabel(1, 2)).toBe("Today");
+    expect(tabLabel(2, 2)).toBe("Tomorrow");
+    expect(tabLabel(3, 3)).toBe("Round 3");
+  });
+
+  it("lists each round separately so scorecards are not stacked", () => {
+    const rounds = listRounds({
+      id: "x",
+      name: "Breck Open",
+      nines: ["elk"],
+      tee: "blue",
+      hostId: "t",
+      status: "lobby",
+      players,
+      scores: { t: [], d: [], s: [] },
+      leaderboard: [
+        { ...row("t", "Thomas", 0), holesSubmitted: 0, complete: false },
+        { ...row("d", "Dad", 0), holesSubmitted: 0, complete: false },
+        { ...row("s", "Scott", 0), holesSubmitted: 0, complete: false },
+      ],
+      roundIndex: 2,
+      pastRounds: [{ index: 1, nines: ["bear"], tee: "blue", scores: { t: [hole(1, 3)], d: [hole(1, 4)] } }],
+      eventStandings: [],
+    });
+    expect(rounds).toHaveLength(2);
+    expect(rounds[0]).toMatchObject({ index: 1, nines: ["bear"], current: false });
+    expect(rounds[1]).toMatchObject({ index: 2, nines: ["elk"], current: true, status: "lobby" });
+    expect(rounds[0]!.leaderboard.find((r) => r.playerId === "t")?.holesSubmitted).toBe(1);
+    expect(rounds[1]!.leaderboard.find((r) => r.playerId === "t")?.holesSubmitted).toBe(0);
   });
 });

@@ -13,7 +13,17 @@ import {
   holeCountOf,
   layoutHoles,
 } from "../shared/course.ts";
-import { FIR_BONUS_AT, GIR_BONUS_AT, headerFocus, headerStats, holeDelta, holeMark } from "../shared/points.ts";
+import {
+  FIR_BONUS_AT,
+  GIR_BONUS_AT,
+  headerFocus,
+  headerStats,
+  holeDelta,
+  holeMark,
+  listRounds,
+  tabLabel,
+  type RoundView,
+} from "../shared/points.ts";
 import type { GameState, HoleScore, LeaderboardRow, NineStats, PointsBreakdown } from "../shared/types.ts";
 
 function inviteUrl(id: string): string {
@@ -54,7 +64,12 @@ function setupFrom(game: GameState): SetupValue {
   };
 }
 
-export function Room({ id, board }: { id: string; board: boolean }) {
+function enterRound(id: string, view: RoundView) {
+  if (view.current) go(`/g/${id}`);
+  else go(`/g/${id}/r/${view.index}`);
+}
+
+export function Room({ id, board, round }: { id: string; board: boolean; round: number | null }) {
   const playerId = useMemo(() => getPlayerId(), []);
   const [game, setGame] = useState<GameState | null>(null);
   const [error, setError] = useState("");
@@ -122,6 +137,12 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   const def = game ? getLayoutHole(game.nines, hole) : null;
   const showFir = def ? firApplies(def.par) : false;
   const holes = game ? holeCountOf(game.nines) : 9;
+  const rounds = game ? listRounds(game) : [];
+  const selected =
+    game && round && rounds.some((r) => r.index === round)
+      ? rounds.find((r) => r.index === round)!
+      : rounds.find((r) => r.current) ?? null;
+  const viewingPast = Boolean(selected && !selected.current);
 
   async function onJoin(e: FormEvent) {
     e.preventDefault();
@@ -206,7 +227,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
     );
   }
 
-  if (!game || !def) {
+  if (!game || !def || !selected) {
     return (
       <div className="wrap">
         <p className="sub">Loading…</p>
@@ -217,89 +238,57 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   const title = `${game.name} · ${formatLabel(game.nines)} · ${TEE_LABEL[game.tee]}`;
 
   if (!me) {
-    if (game.status === "scoring") {
+    if (game.status === "scoring" && !viewingPast) {
       return (
         <div className="wrap">
           <h1>{game.name}</h1>
           <p className="sub">This round already started.</p>
-          <Board game={game} />
+          <RoundChrome id={id} game={game} selected={selected.index} />
+          <Board view={selected} locked={false} />
           <button className="btn ghost" onClick={() => go("/")}>
             Home
           </button>
         </div>
       );
     }
-    return (
-      <div className="wrap">
-        <h1>Join {game.name}</h1>
-        <p className="sub">{title}</p>
-        <form className="card" onSubmit={onJoin}>
-          <label htmlFor="join-name">Your name</label>
-          <input
-            id="join-name"
-            required
-            maxLength={24}
-            autoComplete="given-name"
-            autoCapitalize="words"
-            enterKeyHint="go"
-            value={joinName}
-            onChange={(e) => setJoinName(e.target.value)}
-            placeholder="Dad"
-          />
-          {error ? <p className="err">{error}</p> : null}
-          <button className="btn" disabled={busy || !joinName.trim()}>
-            Join room
-          </button>
-        </form>
-      </div>
-    );
-  }
-
-  if (game.status === "finished" || (board && game.status !== "lobby")) {
-    return (
-      <div className="wrap hasbar">
-        <div className="holehead">
-          <div className="num">{game.status === "finished" ? "Round over" : "Scorecard"}</div>
-          <div className="meta">
-            Round {game.roundIndex} · {formatLabel(game.nines)} · {TEE_LABEL[game.tee]} · {game.name}
-          </div>
-        </div>
-        <StickyLive game={game} />
-        {game.pastRounds.length > 0 ? <Weekend game={game} /> : null}
-        {game.status === "finished" && playerId === game.hostId ? (
-          <div className="card">
-            <strong>Start next round</strong>
-            <p className="sub">Same invite. Pick 9 or 18, or reuse this setup.</p>
-            <SetupFields value={nextSetup} onChange={setNextSetup} />
+    if (!viewingPast) {
+      return (
+        <div className="wrap">
+          <h1>Join {game.name}</h1>
+          <p className="sub">{title}</p>
+          <form className="card" onSubmit={onJoin}>
+            <label htmlFor="join-name">Your name</label>
+            <input
+              id="join-name"
+              required
+              maxLength={24}
+              autoComplete="given-name"
+              autoCapitalize="words"
+              enterKeyHint="go"
+              value={joinName}
+              onChange={(e) => setJoinName(e.target.value)}
+              placeholder="Dad"
+            />
             {error ? <p className="err">{error}</p> : null}
-            <button className="btn" disabled={busy} onClick={() => void onNextRound()}>
-              {busy ? "Starting…" : "Start next round"}
+            <button className="btn" disabled={busy || !joinName.trim()}>
+              Join room
             </button>
-          </div>
-        ) : null}
-        {game.status === "finished" && playerId !== game.hostId ? (
-          <p className="sub">Waiting for host to start the next round…</p>
-        ) : null}
-        <Board game={game} locked={game.status === "finished"} />
-        <div className="thumbbar">
-          {game.status !== "finished" ? (
-            <button className="btn" type="button" onClick={() => go(`/g/${id}`)}>
-              Play
-            </button>
-          ) : (
-            <button className="btn" type="button" onClick={() => go("/")}>
-              Home
-            </button>
-          )}
+          </form>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
-  if (game.status === "lobby") {
+  const showBoard =
+    viewingPast ||
+    game.status === "finished" ||
+    (board && game.status !== "lobby" && !viewingPast && selected.current);
+
+  if (me && game.status === "lobby" && selected.current && !viewingPast) {
     return (
       <div className="wrap">
         <Header game={game} />
+        <RoundChrome id={id} game={game} selected={selected.index} />
         <div className="card">
           <strong>Players</strong>
           <ul className="list">
@@ -322,8 +311,49 @@ export function Room({ id, board }: { id: string; board: boolean }) {
             <p className="sub">Waiting for host to start…</p>
           )}
         </div>
-        {game.pastRounds.length > 0 ? <Weekend game={game} /> : null}
         {error ? <p className="err">{error}</p> : null}
+      </div>
+    );
+  }
+
+  if (showBoard) {
+    const currentFinished = selected.current && game.status === "finished";
+    return (
+      <div className="wrap hasbar">
+        <div className="holehead">
+          <div className="num">{currentFinished ? "Round over" : "Scorecard"}</div>
+          <div className="meta">
+            {formatLabel(selected.nines)} · {TEE_LABEL[selected.tee]} · {game.name}
+          </div>
+        </div>
+        <RoundChrome id={id} game={game} selected={selected.index} />
+        <StickyLive view={selected} />
+        {currentFinished && me && playerId === game.hostId ? (
+          <div className="card">
+            <strong>Start next round</strong>
+            <p className="sub">Same invite. Pick 9 or 18, or reuse this setup.</p>
+            <SetupFields value={nextSetup} onChange={setNextSetup} />
+            {error ? <p className="err">{error}</p> : null}
+            <button className="btn" disabled={busy} onClick={() => void onNextRound()}>
+              {busy ? "Starting…" : "Start next round"}
+            </button>
+          </div>
+        ) : null}
+        {currentFinished && me && playerId !== game.hostId ? (
+          <p className="sub">Waiting for host to start the next round…</p>
+        ) : null}
+        <Board view={selected} locked={selected.status === "finished"} />
+        <div className="thumbbar">
+          {viewingPast || game.status === "scoring" ? (
+            <button className="btn" type="button" onClick={() => go(`/g/${id}`)}>
+              {game.status === "lobby" ? "Lobby" : "Play"}
+            </button>
+          ) : (
+            <button className="btn" type="button" onClick={() => go("/")}>
+              Home
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -339,9 +369,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
       <div className="holehead">
         <div className="num">
           Hole {def.hole}
-          {holes === 18 ? (
-            <span className="ninetag">{COURSE[def.nine].label}</span>
-          ) : null}
+          {holes === 18 ? <span className="ninetag">{COURSE[def.nine].label}</span> : null}
         </div>
         <div className="meta">
           Par {def.par} · {def.yards[game.tee]} yds
@@ -416,7 +444,7 @@ function Header({ game }: { game: GameState }) {
       <div>
         <h1>{game.name}</h1>
         <p className="sub">
-          Round {game.roundIndex} · {formatLabel(game.nines)} · {TEE_LABEL[game.tee]} tees
+          {formatLabel(game.nines)} · {TEE_LABEL[game.tee]} tees
         </p>
       </div>
       <button className="btn ghost small" type="button" onClick={() => go("/")}>
@@ -426,35 +454,45 @@ function Header({ game }: { game: GameState }) {
   );
 }
 
-function Weekend({ game }: { game: GameState }) {
-  if (game.eventStandings.every((r) => r.points === 0) && game.pastRounds.length === 0) return null;
+function RoundChrome({ id, game, selected }: { id: string; game: GameState; selected: number }) {
+  const rounds = listRounds(game);
+  if (rounds.length < 2) return null;
   return (
-    <div className="card">
-      <strong>Weekend</strong>
-      <ul className="list">
-        {game.eventStandings.map((row) => (
-          <li key={row.playerId}>
-            <span>{row.name}</span>
-            <span className="pts">{fmtPts(row.points)}</span>
-          </li>
+    <>
+      <div className="tabs">
+        {rounds.map((r) => (
+          <button
+            key={r.index}
+            type="button"
+            className={`tab ${r.index === selected ? "on" : ""}`}
+            onClick={() => enterRound(id, r)}
+          >
+            {tabLabel(r.index, rounds.length)}
+          </button>
         ))}
-      </ul>
-    </div>
+      </div>
+      <div className="strip">
+        {game.eventStandings.map((row) => (
+          <span key={row.playerId}>
+            {row.name} <span className="pts">{fmtPts(row.points)}</span>
+          </span>
+        ))}
+      </div>
+    </>
   );
 }
 
-function StickyLive({ game }: { game: GameState }) {
-  const multi = game.pastRounds.length > 0;
+function StickyLive({ view }: { view: RoundView }) {
   return (
     <div className="stick">
-      {game.leaderboard.map((row) => (
-        <LiveLine key={row.playerId} row={row} event={multi ? game.eventStandings.find((e) => e.playerId === row.playerId)?.points : undefined} />
+      {view.leaderboard.map((row) => (
+        <LiveLine key={row.playerId} row={row} />
       ))}
     </div>
   );
 }
 
-function LiveLine({ row, event }: { row: LeaderboardRow; event?: number }) {
+function LiveLine({ row }: { row: LeaderboardRow }) {
   const live = headerStats(row);
   const focus = headerFocus(row.nines);
   const split = focus.length > 1;
@@ -501,10 +539,7 @@ function LiveLine({ row, event }: { row: LeaderboardRow; event?: number }) {
         <span>3P {live.threePutts}</span>
         {label ? <span className="livelabel">{label}</span> : null}
       </div>
-      <div className="pts">
-        {fmtPts(row.points.total)}
-        {event !== undefined ? <span className="event"> Σ{event}</span> : null}
-      </div>
+      <div className="pts">{fmtPts(row.points.total)}</div>
     </div>
   );
 }
@@ -528,11 +563,11 @@ function flag(on: boolean | null): string {
   return on ? "yes" : "·";
 }
 
-function Board({ game, locked = false }: { game: GameState; locked?: boolean }) {
-  const holes = layoutHoles(game.nines);
+function Board({ view, locked = false }: { view: RoundView; locked?: boolean }) {
+  const holes = layoutHoles(view.nines);
   return (
     <div className="card board">
-      {game.leaderboard.map((row, i) => (
+      {view.leaderboard.map((row, i) => (
         <div key={row.playerId} className="cardscore">
           <div className="scorehead">
             <div>
@@ -550,7 +585,7 @@ function Board({ game, locked = false }: { game: GameState; locked?: boolean }) 
           </div>
           <ol className="audit">
             {holes.map((h) => {
-              const s = game.scores[row.playerId]?.find((x) => x.hole === h.hole);
+              const s = view.scores[row.playerId]?.find((x) => x.hole === h.hole);
               if (!s) {
                 return (
                   <li key={h.hole} className="auditrow empty">
