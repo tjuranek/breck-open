@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   yds: { alignItems: "center", marginBottom: 10 },
   num: { color: colors.fg, fontSize: 64, fontWeight: "800", letterSpacing: -2, lineHeight: 68 },
-  dim: { color: colors.line },
+  dim: { color: colors.muted },
   unit: { color: colors.muted, fontSize: 16, fontWeight: "600" },
   pinbox: { alignItems: "center", paddingVertical: 8 },
   pin: {
