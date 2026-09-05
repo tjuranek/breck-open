@@ -3,8 +3,11 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Fade, holeSlide, tap, tapSpring } from "../anim.tsx";
 import { getGame, joinGame, saveHole, startGame, startNextRound } from "../api.ts";
 import { go } from "../App.tsx";
+import { GreenMap } from "../GreenMap.tsx";
 import { InstallPrompt } from "../InstallPrompt.tsx";
 import { getPlayerId } from "../player.ts";
+import { getGreenCenter } from "../shared/green-centers.ts";
+import { useLocation } from "../useLocation.ts";
 import { SetupFields, type SetupValue } from "../SetupFields.tsx";
 import {
   COURSE,
@@ -87,6 +90,7 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
   const [nextSetup, setNextSetup] = useState<SetupValue>({ format: 9, nines: ["bear"], tee: "blue" });
   const hydratedHole = useRef<number | null>(null);
   const setupSynced = useRef<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     let cancelled = false;
@@ -390,6 +394,13 @@ export function Room({ id, board, round }: { id: string; board: boolean; round: 
           </div>
         </motion.div>
       </AnimatePresence>
+
+      <GreenMap
+        green={getGreenCenter(def.nine, def.nineHole)}
+        holeLabel={`${COURSE[def.nine].label} ${def.nineHole}`}
+        location={location}
+        onRequestLocation={location.request}
+      />
 
       <div className="chipstack">
         {groups.map((g) => (

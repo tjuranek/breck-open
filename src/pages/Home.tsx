@@ -46,7 +46,7 @@ export function Home() {
   return (
     <div className="wrap">
       <h1>Breck Open</h1>
-      <p className="sub">Breckenridge Golf Club · Bear / Beaver / Elk</p>
+      <p className="sub">Breckenridge Golf Club · Bear, Beaver, Elk</p>
 
       <form className="card" onSubmit={onCreate}>
         <strong>Create a room</strong>

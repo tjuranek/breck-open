@@ -1,16 +1,20 @@
 :root {
-  --bg: #132016;
-  --fg: #f3efe4;
-  --muted: #c5d2c2;
-  --card: #1d3222;
-  --line: #3a5a40;
+  --bg: #0d1711;
+  --fg: #f4f1e8;
+  --muted: #9ec2a6;
+  --card: #173222;
+  --line: rgba(232, 197, 71, 0.18);
+  --hair: rgba(244, 241, 232, 0.1);
   --gold: #e8c547;
-  --accent: #3f7a4b;
-  --on: #e8c547;
-  --pad-x: max(0.85rem, env(safe-area-inset-left, 0px));
-  --pad-r: max(0.85rem, env(safe-area-inset-right, 0px));
-  --pad-t: max(0.7rem, env(safe-area-inset-top, 0px));
-  --pad-b: max(1.4rem, env(safe-area-inset-bottom, 0px));
+  --accent: #3d8f55;
+  --ink: #0d1711;
+  --elev: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --frost: rgba(13, 23, 17, 0.72);
+  --pad-x: max(1.05rem, env(safe-area-inset-left, 0px));
+  --pad-r: max(1.05rem, env(safe-area-inset-right, 0px));
+  --pad-t: max(0.95rem, env(safe-area-inset-top, 0px));
+  --pad-b: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  --radius: 1.2rem;
 }
 
 * {
@@ -34,7 +38,11 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 17px/1.35 ui-sans-serif, system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui,
+    "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
@@ -72,53 +80,59 @@ html.playlock body {
 }
 
 h1 {
-  margin: 0 0 0.25rem;
-  font-size: 1.7rem;
+  margin: 0 0 0.2rem;
+  font-size: 2.05rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
   overflow-wrap: anywhere;
 }
 
 .sub {
   color: var(--muted);
-  margin: 0 0 1rem;
+  margin: 0 0 1.15rem;
 }
 
 .card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 1rem;
-  padding: 0.95rem;
-  margin-bottom: 0.8rem;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius);
+  padding: 1.1rem;
+  margin-bottom: 0.9rem;
   min-width: 0;
+  box-shadow: var(--elev);
 }
 
 label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--muted);
-  margin: 0.75rem 0 0.3rem;
+  margin: 0.85rem 0 0.3rem;
 }
 
 input,
 select {
   width: 100%;
   min-height: 3.4rem;
-  padding: 0.7rem 0.8rem;
-  border-radius: 0.8rem;
-  border: 2px solid var(--line);
-  background: #101a12;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.95rem;
+  border: 1px solid var(--hair);
+  background: rgba(8, 16, 11, 0.72);
 }
 
 .btn {
   width: 100%;
   min-height: 44px;
-  height: 3.6rem;
+  height: 3.5rem;
   margin-top: 0.85rem;
   border: 0;
-  border-radius: 0.9rem;
+  border-radius: 1rem;
   background: var(--gold);
-  color: #132016;
-  font-weight: 800;
-  font-size: 1.1rem;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 1.08rem;
+  letter-spacing: -0.015em;
 }
 
 .btn:disabled {
@@ -126,9 +140,9 @@ select {
 }
 
 .btn.ghost {
-  background: transparent;
+  background: rgba(244, 241, 232, 0.06);
   color: var(--fg);
-  border: 2px solid var(--line);
+  border: 1px solid var(--hair);
 }
 
 .btn.small {
@@ -170,15 +184,15 @@ select {
 .tab {
   flex: 1;
   min-height: 44px;
-  border-radius: 0.8rem;
-  border: 2px solid var(--line);
-  background: #101a12;
-  font-weight: 800;
+  border-radius: 1rem;
+  border: 1px solid var(--hair);
+  background: rgba(8, 16, 11, 0.55);
+  font-weight: 700;
 }
 
 .tab.on {
   background: var(--gold);
-  color: #132016;
+  color: var(--ink);
   border-color: var(--gold);
 }
 
@@ -187,8 +201,8 @@ select {
   flex-wrap: wrap;
   gap: 0.25rem 0.85rem;
   margin: 0 0 0.75rem;
-  padding: 0.3rem 0 0.5rem;
-  border-bottom: 1px solid var(--line);
+  padding: 0.35rem 0 0.55rem;
+  box-shadow: inset 0 -0.5px 0 var(--hair);
   color: var(--muted);
   font-size: 0.88rem;
 }
@@ -214,7 +228,7 @@ select {
 .top h1,
 .top h2 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.55rem;
 }
 
 .chipstack {
@@ -227,7 +241,7 @@ select {
 
 .chiplabel {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
@@ -243,15 +257,15 @@ select {
   width: 100%;
   min-width: 0;
   padding: 0;
-  border-radius: 0.65rem;
-  border: 2px solid var(--line);
-  background: #101a12;
+  border-radius: 0.85rem;
+  border: 1px solid var(--hair);
+  background: rgba(8, 16, 11, 0.55);
   font-weight: 700;
 }
 
 .hole.on {
   background: var(--gold);
-  color: #132016;
+  color: var(--ink);
   border-color: var(--gold);
 }
 
@@ -271,7 +285,7 @@ select {
   align-items: center;
   min-height: 3rem;
   padding: 0.55rem 0;
-  border-bottom: 1px solid var(--line);
+  box-shadow: inset 0 -0.5px 0 var(--hair);
 }
 
 .meta {
@@ -284,9 +298,10 @@ select {
 }
 
 .holehead .num {
-  font-size: clamp(1.7rem, 8vw, 2.3rem);
-  font-weight: 800;
-  line-height: 1.1;
+  font-size: clamp(1.85rem, 8vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
 
 .ninetag {
@@ -295,6 +310,79 @@ select {
   font-weight: 700;
   color: var(--gold);
   vertical-align: 0.15em;
+}
+
+.rangewrap {
+  min-width: 0;
+}
+
+.todistance {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.4rem;
+}
+
+.todistance strong {
+  font-size: clamp(2.15rem, 12vw, 2.9rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.todistance strong.dim {
+  color: color-mix(in srgb, var(--fg) 35%, transparent);
+}
+
+.todistance span {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.holemap {
+  position: relative;
+  height: 8.4rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--hair);
+  box-shadow: var(--elev);
+  margin-bottom: 0.15rem;
+}
+
+.holemapbox {
+  width: 100%;
+  height: 100%;
+}
+
+.locbtn {
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0.95rem;
+  background: rgba(13, 23, 17, 0.78);
+  color: var(--fg);
+  font-weight: 700;
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  z-index: 2;
+}
+
+.youdot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #64b5ff;
+  box-shadow: 0 0 0 4px rgba(100, 181, 255, 0.28), 0 0 0 1px #fff;
+}
+
+.mapboxgl-ctrl-attrib {
+  font-size: 10px;
+  background: rgba(13, 23, 17, 0.55) !important;
 }
 
 .strokes {
@@ -310,7 +398,7 @@ select {
   min-width: 44px;
   min-height: 44px;
   border: 0;
-  border-radius: 1.1rem;
+  border-radius: 1.25rem;
   background: var(--accent);
   font-size: 2.3rem;
   font-weight: 800;
@@ -320,23 +408,25 @@ select {
   font-size: clamp(2.8rem, 16vw, 4.2rem);
   line-height: 1;
   min-width: 0;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
 .toggle {
   width: 100%;
   min-height: 44px;
-  height: 3.6rem;
+  height: 3.5rem;
   margin-top: 0.5rem;
-  border-radius: 0.9rem;
-  border: 2px solid var(--line);
-  background: #0c140e;
-  font-weight: 800;
-  font-size: 1.15rem;
+  border-radius: 1rem;
+  border: 1px solid var(--hair);
+  background: rgba(8, 16, 11, 0.55);
+  font-weight: 700;
+  font-size: 1.12rem;
 }
 
 .toggle.on {
   background: var(--gold);
-  color: #132016;
+  color: var(--ink);
   border-color: var(--gold);
 }
 
@@ -356,13 +446,13 @@ select {
 .cardscore {
   margin-top: 0.85rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--line);
+  box-shadow: inset 0 0.5px 0 var(--hair);
 }
 
 .cardscore:first-child {
   margin-top: 0;
   padding-top: 0;
-  border-top: 0;
+  box-shadow: none;
 }
 
 .scorehead {
@@ -378,11 +468,11 @@ select {
   top: 0;
   z-index: 5;
   margin: 0 0 0.65rem;
-  padding: 0.2rem 0 0.4rem;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 78%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  padding: 0.35rem 0 0.5rem;
+  background: var(--frost);
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  box-shadow: inset 0 -0.5px 0 var(--hair);
 }
 
 .live {
@@ -442,11 +532,11 @@ select {
 
 .auditrow {
   padding: 0.55rem 0;
-  border-bottom: 1px solid var(--line);
+  box-shadow: inset 0 -0.5px 0 var(--hair);
 }
 
 .auditrow.empty {
-  color: var(--line);
+  color: color-mix(in srgb, var(--muted) 45%, transparent);
 }
 
 .auditmain {
@@ -498,12 +588,16 @@ select {
   width: min(390px, 100%);
   display: flex;
   gap: 0.5rem;
-  padding: 0.5rem var(--pad-r) calc(0.5rem + env(safe-area-inset-bottom, 0px)) var(--pad-x);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--line);
+  padding: 0.55rem var(--pad-r) calc(0.55rem + env(safe-area-inset-bottom, 0px)) var(--pad-x);
+  background: var(--frost);
+  backdrop-filter: saturate(180%) blur(22px);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  box-shadow: inset 0 0.5px 0 var(--hair);
   z-index: 8;
+}
+
+.install {
+  box-shadow: var(--elev);
 }
 
 .install .sub {
@@ -529,6 +623,7 @@ select {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     grid-template-areas:
       "head card"
+      "range card"
       "chips card";
     column-gap: 0.75rem;
     align-items: start;
@@ -538,6 +633,14 @@ select {
 
   .wrap.play .holehead {
     grid-area: head;
+  }
+
+  .wrap.play .rangewrap {
+    grid-area: range;
+  }
+
+  .wrap.play .holemap {
+    height: 6.4rem;
   }
 
   .wrap.play .chipstack {

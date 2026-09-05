@@ -18,7 +18,7 @@ Offline, the shell reopens. Live scores still need a network — the app will no
 2. Enter your name. Toggle **Nine** or **Eighteen**. For 18, pick two nines in order (e.g. Bear then Beaver) and a tee.
 3. In the lobby, tap **Copy invite link** and send it to the group (up to 4). Same link / same player id is used all weekend.
 4. Host taps **Start round** when everyone is in.
-5. Score hole-by-hole: strokes, FIR (par 4/5 only), GIR, 3-putt. **Save / Next hole**. 18 is one room — holes 1–9 then 10–18.
+5. Score hole-by-hole: strokes, FIR (par 4/5 only), GIR, 3-putt. **Save / Next hole**. 18 is one room — holes 1–9 then 10–18. The hole screen shows a satellite map of the green and **yards to green center** once you tap **Use my location** (device GPS, no extra APIs). Deny location and the map still shows; yards wait until you enable it.
 6. **Board** anytime: sticky live thru / to-par / FIR / GIR / 3-putts (bonus targets fill live). Audit stack under that. Placement locks per nine when that nine is in.
 7. When the round is in, the end screen shows per-nine and combined points. Host can **Start next round** on the same invite (reuse setup or pick again). Lobby tabs are **Today / Tomorrow** (or Round 1 / 2). Tap a tab to open that nine/18. A thin weekend points strip sits under the tabs. Each scorecard stays on its own screen.
 
