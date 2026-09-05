@@ -1,8 +1,9 @@
 import type mapboxgl from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
-import { MAPBOX_TOKEN } from "./mapbox.ts";
+import { MAPBOX_TOKEN, staticGreenSrc } from "./mapbox.ts";
 import type { LatLng } from "./shared/geo.ts";
 import { yardsToGreen } from "./shared/geo.ts";
+import { gpsYardsCopy } from "./shared/location-copy.ts";
 import type { LocationState } from "./useLocation.ts";
 
 function prefersReducedMotion(): boolean {
@@ -29,6 +30,11 @@ export function GreenMap({
 
   const user = location.status === "ready" ? location.coords : null;
   const yards = user ? yardsToGreen(user, green) : null;
+  const copy = gpsYardsCopy({
+    status: location.status,
+    yards,
+    accuracyM: location.status === "ready" ? location.accuracy : undefined,
+  });
 
   useEffect(() => {
     if (!host.current) return;
@@ -36,37 +42,44 @@ export function GreenMap({
     let map: mapboxgl.Map | undefined;
 
     async function boot() {
-      const [{ default: mapbox }] = await Promise.all([
-        import("mapbox-gl"),
-        import("mapbox-gl/dist/mapbox-gl.css"),
-      ]);
-      if (cancelled || !host.current) return;
-      mapbox.accessToken = MAPBOX_TOKEN;
-      mapboxRef.current = mapbox;
-      map = new mapbox.Map({
-        container: host.current,
-        style: "mapbox://styles/mapbox/satellite-v9",
-        center: [green.lng, green.lat],
-        zoom: 16.2,
-        attributionControl: false,
-        dragRotate: false,
-        pitchWithRotate: false,
-        fadeDuration: prefersReducedMotion() ? 0 : 200,
-      });
-      map.addControl(new mapbox.AttributionControl({ compact: true }));
-      greenMark.current = new mapbox.Marker({ color: "#0A84FF" })
-        .setLngLat([green.lng, green.lat])
-        .addTo(map);
-      mapRef.current = map;
-      if (cancelled) {
-        greenMark.current.remove();
-        map.remove();
-        mapRef.current = null;
-        greenMark.current = null;
-        mapboxRef.current = null;
-        return;
+      try {
+        const [{ default: mapbox }] = await Promise.all([
+          import("mapbox-gl"),
+          import("mapbox-gl/dist/mapbox-gl.css"),
+        ]);
+        if (cancelled || !host.current || !MAPBOX_TOKEN) return;
+        mapbox.accessToken = MAPBOX_TOKEN;
+        mapboxRef.current = mapbox;
+        map = new mapbox.Map({
+          container: host.current,
+          style: "mapbox://styles/mapbox/satellite-v9",
+          center: [green.lng, green.lat],
+          zoom: 16.2,
+          attributionControl: false,
+          dragRotate: false,
+          pitchWithRotate: false,
+          preserveDrawingBuffer: true,
+          fadeDuration: prefersReducedMotion() ? 0 : 200,
+        });
+        map.addControl(new mapbox.AttributionControl({ compact: true }));
+        greenMark.current = new mapbox.Marker({ color: "#0A84FF" })
+          .setLngLat([green.lng, green.lat])
+          .addTo(map);
+        mapRef.current = map;
+        map.on("load", () => {
+          map?.resize();
+          if (!cancelled) setMapReady(true);
+        });
+        if (cancelled) {
+          greenMark.current.remove();
+          map.remove();
+          mapRef.current = null;
+          greenMark.current = null;
+          mapboxRef.current = null;
+        }
+      } catch {
+        if (!cancelled) setMapReady(false);
       }
-      setMapReady(true);
     }
 
     void boot();
@@ -116,26 +129,12 @@ export function GreenMap({
   return (
     <div className="rangewrap card">
       <div className="todistance">
-        {yards !== null ? (
-          <>
-            <strong>{yards}</strong>
-            <span>yds to green</span>
-          </>
-        ) : (
-          <>
-            <strong className="dim">—</strong>
-            <span>
-              {location.status === "denied" || location.status === "unavailable"
-                ? "enable location for yards"
-                : location.status === "pending"
-                  ? "locating…"
-                  : "yards to green"}
-            </span>
-          </>
-        )}
+        <strong className={copy.ready ? undefined : "dim"}>{copy.title}</strong>
+        <span>{copy.detail}</span>
       </div>
       <div className="holemap">
-        <div ref={host} className="holemapbox" aria-label={`${holeLabel} green`} />
+        <img className="holesat" alt={`${holeLabel} green`} src={staticGreenSrc(green)} />
+        <div ref={host} className={mapReady ? "holemapbox on" : "holemapbox"} />
         {location.status !== "ready" && location.status !== "pending" ? (
           <button className="locbtn" type="button" onClick={onRequestLocation}>
             Use my location
