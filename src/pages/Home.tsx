@@ -2,14 +2,12 @@ import { useState, type FormEvent } from "react";
 import { createGame } from "../api.ts";
 import { go } from "../App.tsx";
 import { getPlayerId } from "../player.ts";
-import { COURSE, NINES, TEES, TEE_LABEL } from "../shared/course.ts";
-import type { Nine, Tee } from "../shared/types.ts";
+import { SetupFields, type SetupValue } from "../SetupFields.tsx";
 
 export function Home() {
   const [playerName, setPlayerName] = useState("");
   const [name, setName] = useState("Breck Open");
-  const [nine, setNine] = useState<Nine>("bear");
-  const [tee, setTee] = useState<Tee>("blue");
+  const [setup, setSetup] = useState<SetupValue>({ format: 9, nines: ["bear"], tee: "blue" });
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -23,8 +21,8 @@ export function Home() {
         name,
         playerName,
         playerId: getPlayerId(),
-        nine,
-        tee,
+        nines: setup.format === 18 ? setup.nines.slice(0, 2) : setup.nines.slice(0, 1),
+        tee: setup.tee,
       });
       go(`/g/${game.id}`);
     } catch (err) {
@@ -65,28 +63,7 @@ export function Home() {
         />
         <label htmlFor="game">Game name</label>
         <input id="game" value={name} onChange={(e) => setName(e.target.value)} />
-        <div className="row">
-          <div>
-            <label htmlFor="nine">Nine</label>
-            <select id="nine" value={nine} onChange={(e) => setNine(e.target.value as Nine)}>
-              {NINES.map((n) => (
-                <option key={n} value={n}>
-                  {COURSE[n].label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="tee">Tee</label>
-            <select id="tee" value={tee} onChange={(e) => setTee(e.target.value as Tee)}>
-              {TEES.map((t) => (
-                <option key={t} value={t}>
-                  {TEE_LABEL[t]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <SetupFields value={setup} onChange={setSetup} />
         {error ? <p className="err">{error}</p> : null}
         <button className="btn" disabled={busy || !playerName.trim()}>
           {busy ? "Creating…" : "Create game"}

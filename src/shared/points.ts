@@ -1,12 +1,20 @@
-import { firApplies, getHole } from "./course.ts";
+import { COURSE, firApplies, getHole, holeCountOf } from "./course.ts";
 import type {
+  EventStanding,
   GameState,
+  GameStatus,
   HoleScore,
   LeaderboardRow,
   Nine,
+  NineStats,
+  PastRound,
   Player,
   PointsBreakdown,
+  Tee,
 } from "./types.ts";
+
+export const FIR_BONUS_AT = 4;
+export const GIR_BONUS_AT = 3;
 
 export function countedFir(par: number, fir: boolean | null): boolean {
   return firApplies(par) && fir === true;
@@ -34,6 +42,13 @@ export function holeMark(strokes: number, par: number): string {
   return `+${rel}`;
 }
 
+export function nineSlice(scores: HoleScore[], nineIndex: number): HoleScore[] {
+  const offset = nineIndex * 9;
+  return scores
+    .filter((s) => s.hole > offset && s.hole <= offset + 9)
+    .map((s) => ({ ...s, hole: s.hole - offset }));
+}
+
 export function bonusFromScores(
   scores: HoleScore[],
   nine: Nine,
@@ -57,8 +72,8 @@ export function bonusFromScores(
   return {
     birdies,
     eagles,
-    firBonus: firCount >= 4 ? 1 : 0,
-    girBonus: girCount >= 3 ? 1 : 0,
+    firBonus: firCount >= FIR_BONUS_AT ? 1 : 0,
+    girBonus: girCount >= GIR_BONUS_AT ? 1 : 0,
     threePutts: -threePutts,
     firCount,
     girCount,
@@ -87,52 +102,108 @@ export function placementPoints(
   return out;
 }
 
-function totalOf(b: Omit<PointsBreakdown, "total">): number {
+function emptyPoints(): PointsBreakdown {
+  return {
+    placement: 0,
+    birdies: 0,
+    eagles: 0,
+    firBonus: 0,
+    girBonus: 0,
+    threePutts: 0,
+    total: 0,
+  };
+}
+
+export function totalOf(b: Omit<PointsBreakdown, "total">): number {
   return b.placement + b.birdies + b.eagles + b.firBonus + b.girBonus + b.threePutts;
+}
+
+export function addBreakdown(a: PointsBreakdown, b: PointsBreakdown): PointsBreakdown {
+  const next: PointsBreakdown = {
+    placement: a.placement + b.placement,
+    birdies: a.birdies + b.birdies,
+    eagles: a.eagles + b.eagles,
+    firBonus: a.firBonus + b.firBonus,
+    girBonus: a.girBonus + b.girBonus,
+    threePutts: a.threePutts + b.threePutts,
+    total: 0,
+  };
+  next.total = totalOf(next);
+  return next;
+}
+
+function scoringPlayers(players: Player[], scores: Record<string, HoleScore[]>): Player[] {
+  return players.filter((p) => Object.hasOwn(scores, p.id));
 }
 
 export function buildLeaderboard(
   players: Player[],
   scores: Record<string, HoleScore[]>,
-  nine: Nine,
+  nines: Nine[],
 ): LeaderboardRow[] {
-  const allFinished =
-    players.length > 0 && players.every((p) => (scores[p.id]?.length ?? 0) === 9);
+  const field = scoringPlayers(players, scores);
+  const holeCount = holeCountOf(nines);
 
-  const finished = allFinished
-    ? players.map((p) => ({
-        playerId: p.id,
-        strokes: (scores[p.id] ?? []).reduce((sum, h) => sum + h.strokes, 0),
-      }))
-    : [];
-  const place = placementPoints(finished);
+  const placeByNine = nines.map((_nine, i) => {
+    const allFinished = field.length > 0 && field.every((p) => nineSlice(scores[p.id] ?? [], i).length === 9);
+    const finished = allFinished
+      ? field.map((p) => ({
+          playerId: p.id,
+          strokes: nineSlice(scores[p.id] ?? [], i).reduce((sum, h) => sum + h.strokes, 0),
+        }))
+      : [];
+    return { fieldComplete: allFinished, place: placementPoints(finished) };
+  });
 
-  const rows: LeaderboardRow[] = players.map((p) => {
+  const rows: LeaderboardRow[] = field.map((p) => {
     const submitted = [...(scores[p.id] ?? [])].sort((a, b) => a.hole - b.hole);
-    const strokes = submitted.reduce((sum, h) => sum + h.strokes, 0);
+    const nineStats: NineStats[] = nines.map((nine, i) => {
+      const slice = nineSlice(submitted, i);
+      const strokes = slice.reduce((sum, h) => sum + h.strokes, 0);
+      let toPar: number | null = null;
+      if (slice.length > 0) {
+        toPar = slice.reduce((sum, h) => sum + (h.strokes - getHole(nine, h.hole).par), 0);
+      }
+      const bonus = bonusFromScores(slice, nine);
+      const points: PointsBreakdown = {
+        placement: placeByNine[i]!.place[p.id] ?? 0,
+        birdies: bonus.birdies,
+        eagles: bonus.eagles,
+        firBonus: bonus.firBonus,
+        girBonus: bonus.girBonus,
+        threePutts: bonus.threePutts,
+        total: 0,
+      };
+      points.total = totalOf(points);
+      return {
+        nine,
+        holesSubmitted: slice.length,
+        strokes,
+        toPar,
+        complete: slice.length === 9,
+        fieldComplete: placeByNine[i]!.fieldComplete,
+        firCount: bonus.firCount,
+        girCount: bonus.girCount,
+        threePuttCount: -bonus.threePutts,
+        points,
+      };
+    });
+
+    const points = nineStats.reduce((sum, n) => addBreakdown(sum, n.points), emptyPoints());
     let toPar: number | null = null;
     if (submitted.length > 0) {
-      toPar = submitted.reduce((sum, h) => sum + (h.strokes - getHole(nine, h.hole).par), 0);
+      toPar = nineStats.reduce((sum, n) => sum + (n.toPar ?? 0), 0);
     }
-    const bonus = bonusFromScores(submitted, nine);
-    const points: PointsBreakdown = {
-      placement: place[p.id] ?? 0,
-      birdies: bonus.birdies,
-      eagles: bonus.eagles,
-      firBonus: bonus.firBonus,
-      girBonus: bonus.girBonus,
-      threePutts: bonus.threePutts,
-      total: 0,
-    };
-    points.total = totalOf(points);
+
     return {
       playerId: p.id,
       name: p.name,
       holesSubmitted: submitted.length,
-      strokes,
+      strokes: submitted.reduce((sum, h) => sum + h.strokes, 0),
       toPar,
-      complete: submitted.length === 9,
+      complete: submitted.length === holeCount,
       points,
+      nines: nineStats,
     };
   });
 
@@ -150,11 +221,114 @@ export function buildLeaderboard(
   return rows;
 }
 
+export function headerFocus(nines: NineStats[]): NineStats[] {
+  const open = nines.filter((n) => !n.fieldComplete);
+  if (open.length === 0) return nines;
+  const started = open.filter((n) => n.holesSubmitted > 0);
+  return started.length > 0 ? started : open.slice(0, 1);
+}
+
+export type HeaderStats = {
+  thru: number;
+  toPar: number | null;
+  firCount: number;
+  firTarget: number;
+  girCount: number;
+  girTarget: number;
+  threePutts: number;
+  labels: string[];
+};
+
+export function headerStats(row: LeaderboardRow): HeaderStats {
+  const focus = headerFocus(row.nines);
+  return {
+    thru: row.holesSubmitted,
+    toPar: row.toPar,
+    firCount: focus.reduce((sum, n) => sum + n.firCount, 0),
+    firTarget: FIR_BONUS_AT * Math.max(focus.length, 1),
+    girCount: focus.reduce((sum, n) => sum + n.girCount, 0),
+    girTarget: GIR_BONUS_AT * Math.max(focus.length, 1),
+    threePutts: row.nines.reduce((sum, n) => sum + n.threePuttCount, 0),
+    labels: focus.map((n) => COURSE[n.nine].label),
+  };
+}
+
+export function buildEventStandings(
+  players: Player[],
+  rounds: { index: number; leaderboard: LeaderboardRow[] }[],
+): EventStanding[] {
+  const rows = players.map((p) => {
+    const parts = rounds.map((r) => ({
+      index: r.index,
+      points: r.leaderboard.find((x) => x.playerId === p.id)?.points.total ?? 0,
+    }));
+    return {
+      playerId: p.id,
+      name: p.name,
+      points: parts.reduce((sum, x) => sum + x.points, 0),
+      rounds: parts,
+    };
+  });
+  rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  return rows;
+}
+
+export type RoundView = {
+  index: number;
+  nines: Nine[];
+  tee: Tee;
+  status: GameStatus;
+  scores: Record<string, HoleScore[]>;
+  leaderboard: LeaderboardRow[];
+  current: boolean;
+};
+
+export function tabLabel(index: number, count: number): string {
+  if (count <= 2) return index === 1 ? "Today" : "Tomorrow";
+  return `Round ${index}`;
+}
+
+export function listRounds(game: GameState): RoundView[] {
+  const past: RoundView[] = game.pastRounds.map((r) => ({
+    index: r.index,
+    nines: r.nines,
+    tee: r.tee,
+    status: "finished",
+    scores: r.scores,
+    leaderboard: buildLeaderboard(game.players, r.scores, r.nines),
+    current: false,
+  }));
+  return [
+    ...past,
+    {
+      index: game.roundIndex,
+      nines: game.nines,
+      tee: game.tee,
+      status: game.status,
+      scores: game.scores,
+      leaderboard: game.leaderboard,
+      current: true,
+    },
+  ];
+}
+
 export function withLeaderboard(
-  game: Omit<GameState, "leaderboard"> & { leaderboard?: LeaderboardRow[] },
+  game: Omit<GameState, "leaderboard" | "eventStandings"> & {
+    leaderboard?: LeaderboardRow[];
+    eventStandings?: EventStanding[];
+  },
 ): GameState {
+  const leaderboard = buildLeaderboard(game.players, game.scores, game.nines);
+  const pastBoards = (game.pastRounds as PastRound[]).map((r) => ({
+    index: r.index,
+    leaderboard: buildLeaderboard(game.players, r.scores, r.nines),
+  }));
   return {
     ...game,
-    leaderboard: buildLeaderboard(game.players, game.scores, game.nine),
+    leaderboard,
+    eventStandings: buildEventStandings(game.players, [
+      ...pastBoards,
+      { index: game.roundIndex, leaderboard },
+    ]),
   };
 }

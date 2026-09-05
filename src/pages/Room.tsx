@@ -1,10 +1,30 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { getGame, joinGame, saveHole, startGame } from "../api.ts";
+import { getGame, joinGame, saveHole, startGame, startNextRound } from "../api.ts";
 import { go } from "../App.tsx";
 import { getPlayerId } from "../player.ts";
-import { COURSE, TEE_LABEL, firApplies, getHole } from "../shared/course.ts";
-import { holeDelta, holeMark } from "../shared/points.ts";
-import type { GameState, HoleScore, PointsBreakdown } from "../shared/types.ts";
+import { SetupFields, type SetupValue } from "../SetupFields.tsx";
+import {
+  COURSE,
+  TEE_LABEL,
+  firApplies,
+  formatLabel,
+  formatOf,
+  getLayoutHole,
+  holeCountOf,
+  layoutHoles,
+} from "../shared/course.ts";
+import {
+  FIR_BONUS_AT,
+  GIR_BONUS_AT,
+  headerFocus,
+  headerStats,
+  holeDelta,
+  holeMark,
+  listRounds,
+  tabLabel,
+  type RoundView,
+} from "../shared/points.ts";
+import type { GameState, HoleScore, LeaderboardRow, NineStats, PointsBreakdown } from "../shared/types.ts";
 
 function inviteUrl(id: string): string {
   return `${location.origin}/g/${id}`;
@@ -36,7 +56,20 @@ function savedFor(game: GameState, playerId: string, hole: number): HoleScore | 
   return game.scores[playerId]?.find((h) => h.hole === hole);
 }
 
-export function Room({ id, board }: { id: string; board: boolean }) {
+function setupFrom(game: GameState): SetupValue {
+  return {
+    format: formatOf(game.nines),
+    nines: game.nines,
+    tee: game.tee,
+  };
+}
+
+function enterRound(id: string, view: RoundView) {
+  if (view.current) go(`/g/${id}`);
+  else go(`/g/${id}/r/${view.index}`);
+}
+
+export function Room({ id, board, round }: { id: string; board: boolean; round: number | null }) {
   const playerId = useMemo(() => getPlayerId(), []);
   const [game, setGame] = useState<GameState | null>(null);
   const [error, setError] = useState("");
@@ -48,7 +81,9 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   const [gir, setGir] = useState(false);
   const [threePutt, setThreePutt] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [nextSetup, setNextSetup] = useState<SetupValue>({ format: 9, nines: ["bear"], tee: "blue" });
   const hydratedHole = useRef<number | null>(null);
+  const setupSynced = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,10 +108,18 @@ export function Room({ id, board }: { id: string; board: boolean }) {
 
   useEffect(() => {
     if (!game) return;
+    const key = `${game.roundIndex}:${game.nines.join(",")}:${game.tee}`;
+    if (setupSynced.current === key) return;
+    setupSynced.current = key;
+    setNextSetup(setupFrom(game));
+  }, [game]);
+
+  useEffect(() => {
+    if (!game) return;
     if (hydratedHole.current === hole) return;
     hydratedHole.current = hole;
     const me = savedFor(game, playerId, hole);
-    const def = getHole(game.nine, hole);
+    const def = getLayoutHole(game.nines, hole);
     if (me) {
       setStrokes(me.strokes);
       setFir(me.fir === true);
@@ -91,8 +134,15 @@ export function Room({ id, board }: { id: string; board: boolean }) {
   }, [game, hole, playerId]);
 
   const me = game?.players.find((p) => p.id === playerId);
-  const def = game ? getHole(game.nine, hole) : null;
+  const def = game ? getLayoutHole(game.nines, hole) : null;
   const showFir = def ? firApplies(def.par) : false;
+  const holes = game ? holeCountOf(game.nines) : 9;
+  const rounds = game ? listRounds(game) : [];
+  const selected =
+    game && round && rounds.some((r) => r.index === round)
+      ? rounds.find((r) => r.index === round)!
+      : rounds.find((r) => r.current) ?? null;
+  const viewingPast = Boolean(selected && !selected.current);
 
   async function onJoin(e: FormEvent) {
     e.preventDefault();
@@ -117,6 +167,22 @@ export function Room({ id, board }: { id: string; board: boolean }) {
     }
   }
 
+  async function onNextRound() {
+    setBusy(true);
+    try {
+      const nines =
+        nextSetup.format === 18 ? nextSetup.nines.slice(0, 2) : nextSetup.nines.slice(0, 1);
+      setGame(await startNextRound(id, { playerId, nines, tee: nextSetup.tee }));
+      setHole(1);
+      hydratedHole.current = null;
+      go(`/g/${id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start next round");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onSave() {
     if (!game) return;
     setBusy(true);
@@ -130,7 +196,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
         threePutt,
       });
       setGame(next);
-      if (hole < 9 && next.status !== "finished") setHole(hole + 1);
+      if (hole < holes && next.status !== "finished") setHole(hole + 1);
       else go(`/g/${id}/board`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -161,7 +227,7 @@ export function Room({ id, board }: { id: string; board: boolean }) {
     );
   }
 
-  if (!game || !def) {
+  if (!game || !def || !selected) {
     return (
       <div className="wrap">
         <p className="sub">Loading…</p>
@@ -169,76 +235,60 @@ export function Room({ id, board }: { id: string; board: boolean }) {
     );
   }
 
-  const title = `${game.name} · ${COURSE[game.nine].label} · ${TEE_LABEL[game.tee]}`;
+  const title = `${game.name} · ${formatLabel(game.nines)} · ${TEE_LABEL[game.tee]}`;
 
   if (!me) {
-    if (game.status !== "lobby") {
+    if (game.status === "scoring" && !viewingPast) {
       return (
         <div className="wrap">
           <h1>{game.name}</h1>
           <p className="sub">This round already started.</p>
-          <Board game={game} />
+          <RoundChrome id={id} game={game} selected={selected.index} />
+          <Board view={selected} locked={false} />
           <button className="btn ghost" onClick={() => go("/")}>
             Home
           </button>
         </div>
       );
     }
-    return (
-      <div className="wrap">
-        <h1>Join {game.name}</h1>
-        <p className="sub">{title}</p>
-        <form className="card" onSubmit={onJoin}>
-          <label htmlFor="join-name">Your name</label>
-          <input
-            id="join-name"
-            required
-            maxLength={24}
-            autoComplete="given-name"
-            autoCapitalize="words"
-            enterKeyHint="go"
-            value={joinName}
-            onChange={(e) => setJoinName(e.target.value)}
-            placeholder="Dad"
-          />
-          {error ? <p className="err">{error}</p> : null}
-          <button className="btn" disabled={busy || !joinName.trim()}>
-            Join room
-          </button>
-        </form>
-      </div>
-    );
+    if (!viewingPast) {
+      return (
+        <div className="wrap">
+          <h1>Join {game.name}</h1>
+          <p className="sub">{title}</p>
+          <form className="card" onSubmit={onJoin}>
+            <label htmlFor="join-name">Your name</label>
+            <input
+              id="join-name"
+              required
+              maxLength={24}
+              autoComplete="given-name"
+              autoCapitalize="words"
+              enterKeyHint="go"
+              value={joinName}
+              onChange={(e) => setJoinName(e.target.value)}
+              placeholder="Dad"
+            />
+            {error ? <p className="err">{error}</p> : null}
+            <button className="btn" disabled={busy || !joinName.trim()}>
+              Join room
+            </button>
+          </form>
+        </div>
+      );
+    }
   }
 
-  if (game.status === "finished" || (board && game.status !== "lobby")) {
-    return (
-      <div className="wrap hasbar">
-        <div className="holehead">
-          <div className="num">{game.status === "finished" ? "Round over" : "Scorecard"}</div>
-          <div className="meta">
-            {COURSE[game.nine].label} · {TEE_LABEL[game.tee]} · {game.name}
-          </div>
-        </div>
-        <Board game={game} locked={game.status === "finished"} />
-        <div className="thumbbar">
-          {game.status !== "finished" ? (
-            <button className="btn" type="button" onClick={() => go(`/g/${id}`)}>
-              Play
-            </button>
-          ) : (
-            <button className="btn" type="button" onClick={() => go("/")}>
-              Home
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const showBoard =
+    viewingPast ||
+    game.status === "finished" ||
+    (board && game.status !== "lobby" && !viewingPast && selected.current);
 
-  if (game.status === "lobby") {
+  if (me && game.status === "lobby" && selected.current && !viewingPast) {
     return (
       <div className="wrap">
         <Header game={game} />
+        <RoundChrome id={id} game={game} selected={selected.index} />
         <div className="card">
           <strong>Players</strong>
           <ul className="list">
@@ -266,27 +316,83 @@ export function Room({ id, board }: { id: string; board: boolean }) {
     );
   }
 
+  if (showBoard) {
+    const currentFinished = selected.current && game.status === "finished";
+    return (
+      <div className="wrap hasbar">
+        <div className="holehead">
+          <div className="num">{currentFinished ? "Round over" : "Scorecard"}</div>
+          <div className="meta">
+            {formatLabel(selected.nines)} · {TEE_LABEL[selected.tee]} · {game.name}
+          </div>
+        </div>
+        <RoundChrome id={id} game={game} selected={selected.index} />
+        <StickyLive view={selected} />
+        {currentFinished && me && playerId === game.hostId ? (
+          <div className="card">
+            <strong>Start next round</strong>
+            <p className="sub">Same invite. Pick 9 or 18, or reuse this setup.</p>
+            <SetupFields value={nextSetup} onChange={setNextSetup} />
+            {error ? <p className="err">{error}</p> : null}
+            <button className="btn" disabled={busy} onClick={() => void onNextRound()}>
+              {busy ? "Starting…" : "Start next round"}
+            </button>
+          </div>
+        ) : null}
+        {currentFinished && me && playerId !== game.hostId ? (
+          <p className="sub">Waiting for host to start the next round…</p>
+        ) : null}
+        <Board view={selected} locked={selected.status === "finished"} />
+        <div className="thumbbar">
+          {viewingPast || game.status === "scoring" ? (
+            <button className="btn" type="button" onClick={() => go(`/g/${id}`)}>
+              {game.status === "lobby" ? "Lobby" : "Play"}
+            </button>
+          ) : (
+            <button className="btn" type="button" onClick={() => go("/")}>
+              Home
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const mine = game.scores[playerId] ?? [];
+  const groups = game.nines.map((nine, i) => ({
+    nine,
+    holes: layoutHoles(game.nines).filter((h) => h.nine === nine && Math.floor((h.hole - 1) / 9) === i),
+  }));
 
   return (
     <div className="wrap play hasbar">
       <div className="holehead">
-        <div className="num">Hole {def.hole}</div>
+        <div className="num">
+          Hole {def.hole}
+          {holes === 18 ? <span className="ninetag">{COURSE[def.nine].label}</span> : null}
+        </div>
         <div className="meta">
           Par {def.par} · {def.yards[game.tee]} yds
         </div>
       </div>
 
-      <div className="chips">
-        {COURSE[game.nine].holes.map((h) => (
-          <button
-            key={h.hole}
-            type="button"
-            className={`hole ${hole === h.hole ? "on" : ""} ${mine.some((s) => s.hole === h.hole) ? "done" : ""}`}
-            onClick={() => setHole(h.hole)}
-          >
-            {h.hole}
-          </button>
+      <div className="chipstack">
+        {groups.map((g) => (
+          <div key={`${g.nine}-${g.holes[0]?.hole}`} className="chipgroup">
+            {holes === 18 ? <div className="chiplabel">{COURSE[g.nine].label}</div> : null}
+            <div className="chips">
+              {g.holes.map((h) => (
+                <button
+                  key={h.hole}
+                  type="button"
+                  className={`hole ${hole === h.hole ? "on" : ""} ${mine.some((s) => s.hole === h.hole) ? "done" : ""}`}
+                  onClick={() => setHole(h.hole)}
+                >
+                  {h.hole}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 
@@ -338,7 +444,7 @@ function Header({ game }: { game: GameState }) {
       <div>
         <h1>{game.name}</h1>
         <p className="sub">
-          {COURSE[game.nine].label} · {TEE_LABEL[game.tee]} tees
+          {formatLabel(game.nines)} · {TEE_LABEL[game.tee]} tees
         </p>
       </div>
       <button className="btn ghost small" type="button" onClick={() => go("/")}>
@@ -348,64 +454,170 @@ function Header({ game }: { game: GameState }) {
   );
 }
 
+function RoundChrome({ id, game, selected }: { id: string; game: GameState; selected: number }) {
+  const rounds = listRounds(game);
+  if (rounds.length < 2) return null;
+  return (
+    <>
+      <div className="tabs">
+        {rounds.map((r) => (
+          <button
+            key={r.index}
+            type="button"
+            className={`tab ${r.index === selected ? "on" : ""}`}
+            onClick={() => enterRound(id, r)}
+          >
+            {tabLabel(r.index, rounds.length)}
+          </button>
+        ))}
+      </div>
+      <div className="strip">
+        {game.eventStandings.map((row) => (
+          <span key={row.playerId}>
+            {row.name} <span className="pts">{fmtPts(row.points)}</span>
+          </span>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function StickyLive({ view }: { view: RoundView }) {
+  return (
+    <div className="stick">
+      {view.leaderboard.map((row) => (
+        <LiveLine key={row.playerId} row={row} />
+      ))}
+    </div>
+  );
+}
+
+function LiveLine({ row }: { row: LeaderboardRow }) {
+  const live = headerStats(row);
+  const focus = headerFocus(row.nines);
+  const split = focus.length > 1;
+  const firOn = !split && live.firCount >= live.firTarget;
+  const girOn = !split && live.girCount >= live.girTarget;
+  const label = live.labels.length > 1 ? live.labels.join("+") : live.labels[0];
+  return (
+    <div className="live">
+      <div className="livemain">
+        <strong>{row.name}</strong>
+        <span>
+          {live.thru} · {fmtToPar(live.toPar)}
+        </span>
+        {split ? (
+          <span>
+            FIR{" "}
+            {focus.map((n, i) => (
+              <span key={`f${n.nine}`} className={n.firCount >= FIR_BONUS_AT ? "fill" : undefined}>
+                {i ? " · " : ""}
+                {n.firCount}/{FIR_BONUS_AT}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className={firOn ? "fill" : undefined}>
+            FIR {live.firCount}/{live.firTarget}
+          </span>
+        )}
+        {split ? (
+          <span>
+            GIR{" "}
+            {focus.map((n, i) => (
+              <span key={`g${n.nine}`} className={n.girCount >= GIR_BONUS_AT ? "fill" : undefined}>
+                {i ? " · " : ""}
+                {n.girCount}/{GIR_BONUS_AT}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className={girOn ? "fill" : undefined}>
+            GIR {live.girCount}/{live.girTarget}
+          </span>
+        )}
+        <span>3P {live.threePutts}</span>
+        {label ? <span className="livelabel">{label}</span> : null}
+      </div>
+      <div className="pts">{fmtPts(row.points.total)}</div>
+    </div>
+  );
+}
+
+function NineLine({ stat }: { stat: NineStats }) {
+  return (
+    <div className="nineline">
+      <span>
+        {COURSE[stat.nine].label} {stat.holesSubmitted}/9 · {stat.strokes || "—"} · {fmtToPar(stat.toPar)}{" "}
+        <span className="pts">{fmtPts(stat.points.total)}</span>
+      </span>
+      {stat.fieldComplete || stat.points.total ? (
+        <div className="breakdown">{breakdown(stat.points)}</div>
+      ) : null}
+    </div>
+  );
+}
+
 function flag(on: boolean | null): string {
   if (on === null) return "—";
   return on ? "yes" : "·";
 }
 
-function Board({ game, locked = false }: { game: GameState; locked?: boolean }) {
+function Board({ view, locked = false }: { view: RoundView; locked?: boolean }) {
+  const holes = layoutHoles(view.nines);
   return (
     <div className="card board">
-      {game.leaderboard.map((row, i) => {
-        const holes = COURSE[game.nine].holes;
-        return (
-          <div key={row.playerId} className="cardscore">
-            <div className="scorehead">
-              <div>
-                {i + 1}. {row.name}
-                <div className="meta">
-                  {row.holesSubmitted}/9 · {row.strokes || "—"} · {fmtToPar(row.toPar)}
-                </div>
-                {locked ? <div className="breakdown">{breakdown(row.points)}</div> : null}
+      {view.leaderboard.map((row, i) => (
+        <div key={row.playerId} className="cardscore">
+          <div className="scorehead">
+            <div>
+              {i + 1}. {row.name}
+              <div className="meta">
+                {row.holesSubmitted}/{holes.length} · {row.strokes || "—"} · {fmtToPar(row.toPar)}
               </div>
-              <div className="pts">{fmtPts(row.points.total)} pts</div>
+              {row.nines.length > 1
+                ? row.nines.map((n) => <NineLine key={n.nine} stat={n} />)
+                : locked
+                  ? <div className="breakdown">{breakdown(row.points)}</div>
+                  : null}
             </div>
-            <ol className="audit">
-              {holes.map((h) => {
-                const s = game.scores[row.playerId]?.find((x) => x.hole === h.hole);
-                if (!s) {
-                  return (
-                    <li key={h.hole} className="auditrow empty">
-                      <div className="auditmain">
-                        <span className="audithole">{h.hole}</span>
-                        <strong>·</strong>
-                      </div>
-                    </li>
-                  );
-                }
-                const mark = holeMark(s.strokes, h.par);
-                const birdieEagle =
-                  mark === "birdie" || mark === "eagle" || mark === "albatross" ? mark : "";
-                const fir = firApplies(h.par) ? s.fir : null;
-                const delta = holeDelta(s, h.par);
+            <div className="pts">{fmtPts(row.points.total)} pts</div>
+          </div>
+          <ol className="audit">
+            {holes.map((h) => {
+              const s = view.scores[row.playerId]?.find((x) => x.hole === h.hole);
+              if (!s) {
                 return (
-                  <li key={h.hole} className="auditrow">
+                  <li key={h.hole} className="auditrow empty">
                     <div className="auditmain">
                       <span className="audithole">{h.hole}</span>
-                      <strong>{s.strokes}</strong>
-                      {birdieEagle ? <span className="mark">{birdieEagle}</span> : null}
-                      <span className="delta">{delta ? fmtPts(delta) : "0"}</span>
-                    </div>
-                    <div className="auditflags">
-                      FIR {flag(fir)} · GIR {flag(s.gir)} · 3P {flag(s.threePutt)}
+                      <strong>·</strong>
                     </div>
                   </li>
                 );
-              })}
-            </ol>
-          </div>
-        );
-      })}
+              }
+              const mark = holeMark(s.strokes, h.par);
+              const birdieEagle =
+                mark === "birdie" || mark === "eagle" || mark === "albatross" ? mark : "";
+              const fir = firApplies(h.par) ? s.fir : null;
+              const delta = holeDelta(s, h.par);
+              return (
+                <li key={h.hole} className="auditrow">
+                  <div className="auditmain">
+                    <span className="audithole">{h.hole}</span>
+                    <strong>{s.strokes}</strong>
+                    {birdieEagle ? <span className="mark">{birdieEagle}</span> : null}
+                    <span className="delta">{delta ? fmtPts(delta) : "0"}</span>
+                  </div>
+                  <div className="auditflags">
+                    FIR {flag(fir)} · GIR {flag(s.gir)} · 3P {flag(s.threePutt)}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ))}
     </div>
   );
 }
