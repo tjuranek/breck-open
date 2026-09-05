@@ -366,11 +366,29 @@ select {
   height: 8.4rem;
   border-radius: 12px;
   overflow: hidden;
+  background: #2c2c2e;
+}
+
+.holesat {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
 }
 
 .holemapbox {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  opacity: 0;
+  z-index: 1;
+}
+
+.holemapbox.on {
+  opacity: 1;
 }
 
 .locbtn {
