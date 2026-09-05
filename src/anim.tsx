@@ -1,24 +1,25 @@
 import { motion, type HTMLMotionProps } from "motion/react";
 import type { ReactNode } from "react";
 
-export const spring = { type: "spring" as const, duration: 0.28, bounce: 0.1 };
-export const tapSpring = { type: "spring" as const, duration: 0.18, bounce: 0.16 };
+export const easeOut = { duration: 0.2, ease: [0.33, 1, 0.68, 1] as const };
+export const spring = easeOut;
+export const tapSpring = { duration: 0.16, ease: [0.33, 1, 0.68, 1] as const };
 
 export const pageFade = {
-  initial: { opacity: 0, y: 10 },
+  initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: spring,
+  exit: { opacity: 0, y: -6 },
+  transition: easeOut,
 };
 
 export const holeSlide = {
-  initial: { opacity: 0, x: 14 },
+  initial: { opacity: 0, x: 10 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -10 },
-  transition: { type: "spring" as const, duration: 0.24, bounce: 0.08 },
+  exit: { opacity: 0, x: -8 },
+  transition: easeOut,
 };
 
-export const tap = { scale: 0.97 };
+export const tap = { scale: 0.98 };
 
 export function Fade({
   children,
