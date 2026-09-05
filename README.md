@@ -7,12 +7,12 @@ One Cloudflare Worker + Vite React SPA. Each room is a SQLite-backed Durable Obj
 ## Play this weekend
 
 1. Open the app and tap **Create game** (default name is Breck Open).
-2. Enter your name, pick the **nine** and **tee**.
-3. In the lobby, tap **Copy invite link** and send it to the group (up to 4).
+2. Enter your name. Toggle **Nine** or **Eighteen**. For 18, pick two nines in order (e.g. Bear then Beaver) and a tee.
+3. In the lobby, tap **Copy invite link** and send it to the group (up to 4). Same link / same player id is used all weekend.
 4. Host taps **Start round** when everyone is in.
-5. Score hole-by-hole: strokes, FIR (par 4/5 only), GIR, 3-putt. **Save / Next hole**. Earlier holes stay editable until everyone has all 9 in.
-6. **Board** is available anytime: stroke totals + running points (bonuses on submitted holes; placement points only after the field finishes).
-7. When all 9s are in, the end screen shows the final leaderboard and points breakdown.
+5. Score hole-by-hole: strokes, FIR (par 4/5 only), GIR, 3-putt. **Save / Next hole**. 18 is one room — holes 1–9 then 10–18.
+6. **Board** anytime: sticky live thru / to-par / FIR / GIR / 3-putts (bonus targets fill live). Audit stack under that. Placement locks per nine when that nine is in.
+7. When the round is in, the end screen shows per-nine and combined points. Host can **Start next round** on the same invite (reuse setup or pick again). Weekend standings sum placement + bonus across rounds.
 
 ## Points (per 9)
 
@@ -22,6 +22,8 @@ One Cloudflare Worker + Vite React SPA. Each room is a SQLite-backed Durable Obj
 - 4+ FIR **+1** (FIR does not count on par 3s).
 - 3+ GIR **+1**.
 - Each 3-putt **−1**.
+
+An 18 is two nines: placement and FIR/GIR bonuses are scored on each nine, then added.
 
 Course yardages are BlueGolf numbers, hardcoded per nine and tee. Each nine is par 36.
 
@@ -39,9 +41,9 @@ pnpm dev
 ## Deploy
 
 ```bash
-pnpm deploy
+CLOUDFLARE_ACCOUNT_ID=29c5317bd80c73f5faa2d9decc341fa3 pnpm deploy
 ```
 
-or `npx wrangler deploy` after `pnpm build`. Worker name: `breck-open`. Uses a `workers.dev` URL.
+Worker name: `breck-open`. workers.dev: `https://breck-open.krux-lab.workers.dev`.
 
-Requires Cloudflare auth (`npx wrangler login` / `wrangler whoami`).
+Requires `CLOUDFLARE_API_TOKEN` or `npx wrangler login`.

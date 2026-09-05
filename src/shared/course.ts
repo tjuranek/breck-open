@@ -1,8 +1,8 @@
-import type { Nine, Tee } from "./types.ts";
+import type { Format, Nine, Tee } from "./types.ts";
 import { NINES, TEES } from "./types.ts";
 
 export { NINES, TEES };
-export type { Nine, Tee };
+export type { Format, Nine, Tee };
 
 export type Hole = {
   hole: number;
@@ -83,6 +83,11 @@ export const TEE_LABEL: Record<Tee, string> = {
   red: "Red",
 };
 
+export type LayoutHole = Hole & {
+  nine: Nine;
+  nineHole: number;
+};
+
 export function getHole(n: Nine, hole: number): Hole {
   const found = COURSE[n].holes[hole - 1];
   if (!found) throw new Error(`Invalid hole ${hole}`);
@@ -99,4 +104,45 @@ export function isNine(value: string): value is Nine {
 
 export function isTee(value: string): value is Tee {
   return (TEES as readonly string[]).includes(value);
+}
+
+export function formatOf(nines: Nine[]): Format {
+  return nines.length === 2 ? 18 : 9;
+}
+
+export function holeCountOf(nines: Nine[]): number {
+  return nines.length * 9;
+}
+
+export function formatLabel(nines: Nine[]): string {
+  return nines.map((n) => COURSE[n].label).join(" + ");
+}
+
+export function layoutHoles(nines: Nine[]): LayoutHole[] {
+  return nines.flatMap((nine, i) =>
+    COURSE[nine].holes.map((h) => ({
+      ...h,
+      hole: i * 9 + h.hole,
+      nine,
+      nineHole: h.hole,
+    })),
+  );
+}
+
+export function getLayoutHole(nines: Nine[], hole: number): LayoutHole {
+  const found = layoutHoles(nines)[hole - 1];
+  if (!found) throw new Error(`Invalid hole ${hole}`);
+  return found;
+}
+
+export function otherNine(nine: Nine): Nine {
+  return NINES.find((n) => n !== nine) ?? "beaver";
+}
+
+export function parseNines(value: unknown): Nine[] {
+  const list = Array.isArray(value) ? value.map(String) : [];
+  if (list.length !== 1 && list.length !== 2) throw new Error("Pick 9 or 18 holes");
+  if (!list.every(isNine)) throw new Error("Pick Bear, Beaver, or Elk");
+  if (list.length === 2 && list[0] === list[1]) throw new Error("Pick two different nines");
+  return list;
 }

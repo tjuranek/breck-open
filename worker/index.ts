@@ -1,4 +1,10 @@
-import type { CreateGameInput, JoinGameInput, SaveHoleInput } from "../src/shared/types.ts";
+import { parseNines } from "../src/shared/course.ts";
+import type {
+  CreateGameInput,
+  JoinGameInput,
+  NextRoundInput,
+  SaveHoleInput,
+} from "../src/shared/types.ts";
 import { GameRoom } from "./game-room.ts";
 
 export { GameRoom };
@@ -23,13 +29,14 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   const method = request.method;
 
   if (method === "POST" && path === "/api/games") {
-    const body = (await request.json()) as CreateGameInput;
+    const body = (await request.json()) as CreateGameInput & { nine?: string };
     const id = roomId();
-    const state = await stub(env, id).create({ ...body, id });
+    const nines = parseNines(body.nines ?? (body.nine ? [body.nine] : []));
+    const state = await stub(env, id).create({ ...body, id, nines });
     return json(state, 201);
   }
 
-  const match = path.match(/^\/api\/games\/([^/]+)(?:\/(join|start|holes\/(\d+)))?$/);
+  const match = path.match(/^\/api\/games\/([^/]+)(?:\/(join|start|next|holes\/(\d+)))?$/);
   if (!match) return json({ error: "Not found" }, 404);
 
   const id = match[1]!;
@@ -51,6 +58,11 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
   if (method === "POST" && action === "start") {
     const body = (await request.json()) as { playerId: string };
     return json(await room.start(body.playerId));
+  }
+
+  if (method === "POST" && action === "next") {
+    const body = (await request.json()) as NextRoundInput;
+    return json(await room.nextRound(body));
   }
 
   if (method === "PUT" && hole) {

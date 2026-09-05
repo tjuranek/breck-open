@@ -2,6 +2,7 @@ import type {
   CreateGameInput,
   GameState,
   JoinGameInput,
+  NextRoundInput,
   SaveHoleInput,
 } from "./shared/types.ts";
 
@@ -36,6 +37,14 @@ export function startGame(id: string, playerId: string): Promise<GameState> {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ playerId }),
+  }).then((r) => parse<GameState>(r));
+}
+
+export function startNextRound(id: string, input: NextRoundInput): Promise<GameState> {
+  return fetch(`/api/games/${id}/next`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
   }).then((r) => parse<GameState>(r));
 }
 

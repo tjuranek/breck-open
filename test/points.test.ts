@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { COURSE, firApplies } from "../src/shared/course.ts";
+import { COURSE, firApplies, getLayoutHole, layoutHoles, parseNines } from "../src/shared/course.ts";
 import {
   bonusFromScores,
+  buildEventStandings,
   buildLeaderboard,
   countedFir,
+  headerStats,
   holeAwards,
   holeDelta,
   holeMark,
+  nineSlice,
   placementPoints,
 } from "../src/shared/points.ts";
-import type { HoleScore, Player } from "../src/shared/types.ts";
+import type { HoleScore, LeaderboardRow, Player } from "../src/shared/types.ts";
 
 function hole(
   n: number,
@@ -175,7 +178,7 @@ describe("leaderboard", () => {
 
   it("holds placement until every player has all 9", () => {
     const thomas = COURSE.bear.holes.map((h) => hole(h.hole, h.par));
-    const rows = buildLeaderboard(players, { t: thomas, d: [hole(1, 4)] }, "bear");
+    const rows = buildLeaderboard(players, { t: thomas, d: [hole(1, 4)] }, ["bear"]);
     expect(rows.find((r) => r.playerId === "t")?.complete).toBe(true);
     expect(rows.find((r) => r.playerId === "t")?.points.placement).toBe(0);
     expect(rows.find((r) => r.playerId === "d")?.points.placement).toBe(0);
@@ -184,7 +187,7 @@ describe("leaderboard", () => {
   it("awards placement when the field is in", () => {
     const thomas = COURSE.bear.holes.map((h) => hole(h.hole, h.par - 1));
     const dad = COURSE.bear.holes.map((h) => hole(h.hole, h.par));
-    const rows = buildLeaderboard(players, { t: thomas, d: dad }, "bear");
+    const rows = buildLeaderboard(players, { t: thomas, d: dad }, ["bear"]);
     const t = rows.find((r) => r.playerId === "t")!;
     const d = rows.find((r) => r.playerId === "d")!;
     expect(t.points.placement).toBe(3);
@@ -192,5 +195,231 @@ describe("leaderboard", () => {
     expect(t.points.birdies).toBe(9);
     expect(t.strokes).toBe(27);
     expect(d.strokes).toBe(36);
+  });
+});
+
+describe("18-hole composition", () => {
+  it("Bear then Beaver is holes 1–18 with each nine’s pars", () => {
+    const holes = layoutHoles(["bear", "beaver"]);
+    expect(holes).toHaveLength(18);
+    expect(holes.slice(0, 9).map((h) => h.par)).toEqual(COURSE.bear.holes.map((h) => h.par));
+    expect(holes.slice(9).map((h) => h.par)).toEqual(COURSE.beaver.holes.map((h) => h.par));
+    expect(holes[0]).toMatchObject({ hole: 1, nine: "bear", nineHole: 1, par: 4 });
+    expect(holes[9]).toMatchObject({ hole: 10, nine: "beaver", nineHole: 1, par: 4 });
+    expect(getLayoutHole(["bear", "beaver"], 13)).toMatchObject({
+      hole: 13,
+      nine: "beaver",
+      nineHole: 4,
+      par: 4,
+    });
+  });
+
+  it("slices scores onto the correct nine", () => {
+    const scores = [hole(1, 4), hole(9, 5), hole(10, 4), hole(18, 3)];
+    expect(nineSlice(scores, 0).map((s) => s.hole)).toEqual([1, 9]);
+    expect(nineSlice(scores, 1).map((s) => ({ hole: s.hole, strokes: s.strokes }))).toEqual([
+      { hole: 1, strokes: 4 },
+      { hole: 9, strokes: 3 },
+    ]);
+  });
+
+  it("requires two different nines for 18", () => {
+    expect(parseNines(["bear"])).toEqual(["bear"]);
+    expect(parseNines(["bear", "beaver"])).toEqual(["bear", "beaver"]);
+    expect(() => parseNines(["bear", "bear"])).toThrow(/different/);
+    expect(() => parseNines([])).toThrow(/9 or 18/);
+  });
+});
+
+describe("per-nine placement", () => {
+  const players: Player[] = [
+    { id: "t", name: "Thomas" },
+    { id: "d", name: "Dad" },
+  ];
+
+  function nineScores(nine: "bear" | "beaver", rel: number, startHole: number): HoleScore[] {
+    return COURSE[nine].holes.map((h) => hole(startHole + h.hole - 1, h.par + rel));
+  }
+
+  it("awards front placement when everyone has 1–9 even if the back is empty", () => {
+    const rows = buildLeaderboard(
+      players,
+      {
+        t: nineScores("bear", -1, 1),
+        d: nineScores("bear", 0, 1),
+      },
+      ["bear", "beaver"],
+    );
+    const t = rows.find((r) => r.playerId === "t")!;
+    const d = rows.find((r) => r.playerId === "d")!;
+    expect(t.nines[0]?.fieldComplete).toBe(true);
+    expect(t.nines[1]?.fieldComplete).toBe(false);
+    expect(t.nines[0]?.points.placement).toBe(3);
+    expect(d.nines[0]?.points.placement).toBe(1);
+    expect(t.nines[1]?.points.placement).toBe(0);
+    expect(t.points.placement).toBe(3);
+    expect(t.complete).toBe(false);
+  });
+
+  it("adds back-nine placement into the combined total after 10–18", () => {
+    const rows = buildLeaderboard(
+      players,
+      {
+        t: [...nineScores("bear", 0, 1), ...nineScores("beaver", 1, 10)],
+        d: [...nineScores("bear", 1, 1), ...nineScores("beaver", -1, 10)],
+      },
+      ["bear", "beaver"],
+    );
+    const t = rows.find((r) => r.playerId === "t")!;
+    const d = rows.find((r) => r.playerId === "d")!;
+    expect(t.nines[0]?.points.placement).toBe(3);
+    expect(d.nines[0]?.points.placement).toBe(1);
+    expect(t.nines[1]?.points.placement).toBe(1);
+    expect(d.nines[1]?.points.placement).toBe(3);
+    expect(t.points.placement).toBe(4);
+    expect(d.points.placement).toBe(4);
+    expect(t.complete).toBe(true);
+  });
+});
+
+describe("live FIR/GIR header math", () => {
+  const players: Player[] = [
+    { id: "t", name: "Thomas" },
+    { id: "d", name: "Dad" },
+  ];
+
+  it("fills FIR/GIR toward 4 and 3 before the nine closes", () => {
+    const rows = buildLeaderboard(
+      players,
+      {
+        t: [
+          hole(1, 4, { fir: true, gir: true }),
+          hole(2, 5, { fir: true, gir: true }),
+          hole(4, 3, { fir: true, gir: true }),
+        ],
+        d: [hole(1, 5)],
+      },
+      ["bear"],
+    );
+    const live = headerStats(rows.find((r) => r.playerId === "t")!);
+    expect(live.thru).toBe(3);
+    expect(live.toPar).toBe(0);
+    expect(live.firCount).toBe(2);
+    expect(live.firTarget).toBe(4);
+    expect(live.girCount).toBe(3);
+    expect(live.girTarget).toBe(3);
+    expect(live.threePutts).toBe(0);
+    expect(rows[0]!.points.firBonus).toBe(0);
+    expect(rows.find((r) => r.playerId === "t")!.points.girBonus).toBe(1);
+    expect(rows.find((r) => r.playerId === "t")!.points.placement).toBe(0);
+  });
+
+  it("uses only the open nine’s targets on 18 until the front closes", () => {
+    const front = COURSE.bear.holes.map((h, i) =>
+      hole(h.hole, h.par, { fir: i !== 3 && i !== 6, gir: i < 3 }),
+    );
+    const rows = buildLeaderboard(
+      players,
+      { t: front, d: [hole(1, 4)] },
+      ["bear", "beaver"],
+    );
+    const live = headerStats(rows.find((r) => r.playerId === "t")!);
+    expect(live.labels).toEqual(["Bear"]);
+    expect(live.firCount).toBe(7);
+    expect(live.firTarget).toBe(4);
+    expect(live.girCount).toBe(3);
+    expect(live.girTarget).toBe(3);
+    expect(rows.find((r) => r.playerId === "t")!.nines[0]?.points.firBonus).toBe(1);
+    expect(rows.find((r) => r.playerId === "t")!.nines[0]?.points.placement).toBe(0);
+  });
+
+  it("after the front closes, header FIR/GIR is the back nine vs 4 and 3", () => {
+    const frontT = COURSE.bear.holes.map((h) => hole(h.hole, h.par, { fir: true, gir: true }));
+    const frontD = COURSE.bear.holes.map((h) => hole(h.hole, h.par));
+    const rows = buildLeaderboard(
+      players,
+      {
+        t: [...frontT, hole(10, 4, { fir: true }), hole(11, 5, { gir: true, threePutt: true })],
+        d: frontD,
+      },
+      ["bear", "beaver"],
+    );
+    const live = headerStats(rows.find((r) => r.playerId === "t")!);
+    expect(live.labels).toEqual(["Beaver"]);
+    expect(live.thru).toBe(11);
+    expect(live.firCount).toBe(1);
+    expect(live.firTarget).toBe(4);
+    expect(live.girCount).toBe(1);
+    expect(live.girTarget).toBe(3);
+    expect(live.threePutts).toBe(1);
+    expect(rows.find((r) => r.playerId === "t")!.nines[0]?.points.placement).toBe(3);
+  });
+});
+
+describe("multi-round points sum", () => {
+  const players: Player[] = [
+    { id: "t", name: "Thomas" },
+    { id: "d", name: "Dad" },
+    { id: "s", name: "Scott" },
+  ];
+
+  function row(id: string, name: string, total: number): LeaderboardRow {
+    return {
+      playerId: id,
+      name,
+      holesSubmitted: 9,
+      strokes: 36,
+      toPar: 0,
+      complete: true,
+      points: {
+        placement: total,
+        birdies: 0,
+        eagles: 0,
+        firBonus: 0,
+        girBonus: 0,
+        threePutts: 0,
+        total,
+      },
+      nines: [],
+    };
+  }
+
+  it("sums placement + bonus across rounds, missing round is 0", () => {
+    const standings = buildEventStandings(players, [
+      {
+        index: 1,
+        leaderboard: [row("t", "Thomas", 8), row("d", "Dad", 3)],
+      },
+      {
+        index: 2,
+        leaderboard: [row("t", "Thomas", 5), row("d", "Dad", 6), row("s", "Scott", 4)],
+      },
+    ]);
+    expect(standings.map((r) => ({ id: r.playerId, pts: r.points, rounds: r.rounds }))).toEqual([
+      {
+        id: "t",
+        pts: 13,
+        rounds: [
+          { index: 1, points: 8 },
+          { index: 2, points: 5 },
+        ],
+      },
+      {
+        id: "d",
+        pts: 9,
+        rounds: [
+          { index: 1, points: 3 },
+          { index: 2, points: 6 },
+        ],
+      },
+      {
+        id: "s",
+        pts: 4,
+        rounds: [
+          { index: 1, points: 0 },
+          { index: 2, points: 4 },
+        ],
+      },
+    ]);
   });
 });
