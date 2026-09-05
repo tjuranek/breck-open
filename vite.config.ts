@@ -34,6 +34,7 @@ export default defineConfig({
         navigateFallback: "index.html",
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ["**/*.{js,css,html,svg,png,webmanifest,ico}"],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
     }),
     cloudflare(),
