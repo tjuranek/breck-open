@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createGame } from "../api.ts";
 import { go } from "../App.tsx";
+import { InstallPrompt } from "../InstallPrompt.tsx";
 import { getPlayerId } from "../player.ts";
 import { SetupFields, type SetupValue } from "../SetupFields.tsx";
 
@@ -87,6 +88,8 @@ export function Home() {
           Open room
         </button>
       </form>
+
+      <InstallPrompt />
     </div>
   );
 }

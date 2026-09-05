@@ -1,4 +1,6 @@
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { pageFade } from "./anim.tsx";
 import { Home } from "./pages/Home.tsx";
 import { Room } from "./pages/Room.tsx";
 
@@ -33,6 +35,19 @@ export function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  if (route.page === "room") return <Room id={route.id} board={route.board} round={route.round} />;
-  return <Home />;
+  return (
+    <MotionConfig reducedMotion="user">
+      <AnimatePresence mode="wait">
+        {route.page === "room" ? (
+          <motion.div key={`g-${route.id}`} {...pageFade}>
+            <Room id={route.id} board={route.board} round={route.round} />
+          </motion.div>
+        ) : (
+          <motion.div key="home" {...pageFade}>
+            <Home />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </MotionConfig>
+  );
 }

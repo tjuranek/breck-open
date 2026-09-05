@@ -4,6 +4,14 @@ Weekend tournament scorer for Thomas, Dad, Scott, and Noah at **Breckenridge Gol
 
 One Cloudflare Worker + Vite React SPA. Each room is a SQLite-backed Durable Object. Anonymous name + `localStorage` player id. No accounts.
 
+## Install (phone)
+
+Android Chrome: tap **Install app** on the home or lobby screen when the browser offers it.
+
+iOS Safari: tap Share → **Add to Home Screen**. The app opens standalone (no Safari chrome) with the dark status bar.
+
+Offline, the shell reopens. Live scores still need a network — the app will not invent numbers.
+
 ## Play this weekend
 
 1. Open the app and tap **Create game** (default name is Breck Open).
